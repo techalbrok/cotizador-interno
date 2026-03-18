@@ -6,6 +6,7 @@ import {
   LogOut,
   Menu,
   PanelLeftClose,
+  PanelLeftOpen,
   Settings,
   User,
   X,
@@ -25,7 +26,14 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem("sidebarCollapsed") === "true";
+  });
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem("sidebarCollapsed", sidebarCollapsed.toString());
+  }, [sidebarCollapsed]);
 
   const navItems: NavItem[] = useMemo(
     () => [
@@ -54,28 +62,34 @@ export default function Layout() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [accountMenuOpen]);
 
-  const sidebar = (
-    <aside className="flex h-full flex-col rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,hsl(229_38%_12%),hsl(222_42%_10%)_48%,hsl(222_42%_9%))] px-3 py-4 text-white shadow-[var(--shadow-sidebar)]">
-      <div className="flex items-center justify-between gap-3 px-3 pb-5 pt-2">
-        <Link to="/" onClick={() => setMobileMenuOpen(false)} className="inline-flex items-center">
-          <img
-            src="/logos/logo_albrok_blanco_transp.png"
-            alt="Albroksa"
-            className="h-auto w-[200px] max-w-full object-contain"
-          />
-        </Link>
+  const renderSidebar = (isCollapsed: boolean) => (
+    <aside className="flex h-full flex-col rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,hsl(229_38%_12%),hsl(222_42%_10%)_48%,hsl(222_42%_9%))] px-3 py-4 text-white shadow-[var(--shadow-sidebar)] transition-all duration-300">
+      <div className={clsx("flex items-center gap-3 px-3 pb-5 pt-2", isCollapsed ? "justify-center" : "justify-between")}>
+        {!isCollapsed && (
+          <Link to="/" onClick={() => setMobileMenuOpen(false)} className="inline-flex items-center">
+            <img
+              src="/logos/logo_albrok_blanco_transp.png"
+              alt="Albroksa"
+              className="h-auto w-[150px] max-w-full object-contain"
+            />
+          </Link>
+        )}
         <button
           type="button"
-          className="hidden h-10 w-10 items-center justify-center rounded-2xl text-[hsl(221_20%_72%)] transition hover:bg-white/6 hover:text-white lg:inline-flex"
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          className={clsx(
+            "hidden h-10 w-10 items-center justify-center rounded-2xl text-[hsl(221_20%_72%)] transition hover:bg-white/6 hover:text-white lg:inline-flex shrink-0",
+            isCollapsed && "mx-auto"
+          )}
         >
-          <PanelLeftClose className="h-4 w-4" />
+          {isCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
         </button>
         <button
           type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-2xl text-[hsl(221_20%_72%)] transition hover:bg-white/6 hover:text-white lg:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-2xl text-[hsl(221_20%_72%)] transition hover:bg-white/6 hover:text-white lg:hidden shrink-0"
           onClick={() => setMobileMenuOpen(false)}
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5" />
         </button>
       </div>
 
@@ -88,36 +102,45 @@ export default function Layout() {
               to={item.path}
               onClick={() => setMobileMenuOpen(false)}
               className={clsx(
-                "group flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300",
+                "group flex items-center rounded-2xl py-3 text-sm font-semibold transition-all duration-300",
+                isCollapsed ? "justify-center px-0" : "gap-3 px-4",
                 isActive
                   ? "bg-[linear-gradient(135deg,hsl(350_65%_24%),hsl(350_60%_18%))] text-white shadow-[0_18px_30px_-24px_hsl(350_78%_50%_/_0.95)]"
                   : "text-[hsl(221_20%_72%)] hover:bg-white/6 hover:text-white"
               )}
+              title={isCollapsed ? item.name : undefined}
             >
-              <item.icon className={clsx("h-[1.05rem] w-[1.05rem]", isActive ? "text-[hsl(350_88%_72%)]" : "text-current")} />
-              <span>{item.name}</span>
+              <item.icon className={clsx("h-[1.15rem] w-[1.15rem] shrink-0", isActive ? "text-[hsl(350_88%_72%)]" : "text-current")} />
+              {!isCollapsed && <span>{item.name}</span>}
             </Link>
           );
         })}
       </nav>
 
-      <div className="px-3 pb-2 pt-6 text-center text-[0.72rem] leading-6 text-[hsl(221_20%_58%)]">
-        <p>Gestion de solicitudes</p>
-        <p>v1 2026 Albroksa</p>
-        <p>Correduria de Seguros</p>
-      </div>
+      {!isCollapsed && (
+        <div className="px-3 pb-2 pt-6 text-center text-[0.72rem] leading-6 text-[hsl(221_20%_58%)] overflow-hidden whitespace-nowrap">
+          <p>Gestion de solicitudes</p>
+          <p>v1 2026 Albroksa</p>
+          <p>Correduria de Seguros</p>
+        </div>
+      )}
     </aside>
   );
 
   return (
     <div className="h-screen overflow-hidden p-[3px]">
       <div className="flex h-full overflow-hidden gap-[3px]">
-        <div className="hidden h-full w-[300px] shrink-0 lg:block">{sidebar}</div>
+        <div className={clsx(
+          "hidden h-full shrink-0 transition-all duration-300 lg:block",
+          sidebarCollapsed ? "w-[88px]" : "w-[300px]"
+        )}>
+          {renderSidebar(sidebarCollapsed)}
+        </div>
 
         {mobileMenuOpen && (
           <>
             <div className="fixed inset-0 z-40 bg-[hsl(222_38%_12%_/_0.45)] backdrop-blur-sm lg:hidden" onClick={() => setMobileMenuOpen(false)} />
-            <div className="fixed inset-y-[3px] left-[3px] z-50 w-[min(90vw,300px)] lg:hidden">{sidebar}</div>
+            <div className="fixed inset-y-[3px] left-[3px] z-50 w-[min(90vw,300px)] lg:hidden">{renderSidebar(false)}</div>
           </>
         )}
 
