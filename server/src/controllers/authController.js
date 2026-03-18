@@ -8,7 +8,12 @@ import { clearAuthCookie, setAuthCookie } from '../utils/authCookies.js';
 
 export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const email = String(req.body?.email ?? '').trim().toLowerCase();
+    const password = String(req.body?.password ?? '');
+
+    if (!email || !password) {
+      return res.status(401).json({ message: 'Credenciales invalidas' });
+    }
 
     const user = await findUserByEmail(email);
     if (!user) {

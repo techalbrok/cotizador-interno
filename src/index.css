@@ -143,6 +143,20 @@ button {
   content: none;
 }
 
+.surface-card-dark {
+  position: relative;
+  background: linear-gradient(160deg, hsl(229 38% 12%), hsl(222 42% 10%) 46%, hsl(222 42% 9%));
+  border: 1px solid hsl(0 0% 100% / 0.12);
+  border-radius: 1.5rem;
+  color: hsl(0 0% 100%);
+  box-shadow: var(--shadow-sidebar);
+  backdrop-filter: blur(18px);
+}
+
+.surface-card-dark::before {
+  content: none;
+}
+
 .surface-glass {
   background: hsl(220 32% 99% / 0.72);
   border: 1px solid hsl(220 16% 86% / 0.72);
@@ -386,6 +400,7 @@ button {
   }
 
   .surface-card,
+  .surface-card-dark,
   .section-panel {
     border-radius: 1.25rem;
   }

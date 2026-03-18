@@ -24,12 +24,19 @@ export default function Login() {
     setError("");
     setLoading(true);
 
+    const formData = new FormData(event.currentTarget as HTMLFormElement);
+    const submittedEmail = String(formData.get("email") ?? "").trim().toLowerCase();
+    const submittedPassword = String(formData.get("password") ?? "");
+
+    setEmail(submittedEmail);
+    setPassword(submittedPassword);
+
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: submittedEmail, password: submittedPassword }),
       });
 
       const data = await response.json();
@@ -50,7 +57,7 @@ export default function Login() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
       <div className="page-shell grid w-full max-w-6xl gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <SurfaceCard className="hidden overflow-hidden border-white/50 bg-[linear-gradient(160deg,hsl(229_38%_12%),hsl(222_42%_10%)_46%,hsl(222_42%_9%))] text-white shadow-[var(--shadow-sidebar)] lg:block" padding="lg">
+        <SurfaceCard variant="dark" className="hidden overflow-hidden lg:block" padding="lg">
           <div className="relative z-10 flex h-full flex-col justify-between gap-10">
             <div>
               <div className="flex items-center gap-4">
@@ -131,7 +138,9 @@ export default function Login() {
                 </label>
                 <input
                   id="email"
+                  name="email"
                   type="email"
+                  autoComplete="username"
                   required
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -146,7 +155,9 @@ export default function Login() {
                 </label>
                 <input
                   id="password"
+                  name="password"
                   type="password"
+                  autoComplete="current-password"
                   required
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}

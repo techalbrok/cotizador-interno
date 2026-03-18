@@ -6,7 +6,7 @@ type SurfaceCardProps = {
   key?: Key;
   children: ReactNode;
   className?: string;
-  variant?: "default" | "glass" | "soft";
+  variant?: "default" | "glass" | "soft" | "dark";
   padding?: "none" | "sm" | "md" | "lg";
 };
 
@@ -26,7 +26,11 @@ export default function SurfaceCard({
   return (
     <div
       className={clsx(
-        variant === "glass" ? "surface-glass" : "surface-card",
+        variant === "glass"
+          ? "surface-glass"
+          : variant === "dark"
+            ? "surface-card-dark"
+            : "surface-card",
         variant === "soft" && "bg-[hsl(220_32%_99%_/_0.74)]",
         paddingClasses[padding],
         className
