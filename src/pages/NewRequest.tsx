@@ -36,6 +36,7 @@ export default function NewRequest() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingDraft, setIsLoadingDraft] = useState(Boolean(editId));
   const [submitError, setSubmitError] = useState("");
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
 
   useEffect(() => {
     if (!editId || !token) return;
@@ -106,6 +107,7 @@ export default function NewRequest() {
 
   const handleTypeSelect = (selectedType: InsuranceType) => {
     setType(selectedType);
+    setCurrentSectionIndex(0);
     setStep(2);
   };
 
@@ -113,10 +115,13 @@ export default function NewRequest() {
     if (!event.target.files || event.target.files.length === 0) return;
     setIsExtracting(true);
     try {
+      const formData = new FormData();
+      formData.append("file", event.target.files[0]);
+      if (type) formData.append("type", type);
+      
       const response = await apiFetch("/api/extract", token, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type }),
+        body: formData,
       });
       const data = await response.json();
       if (data.success) {
@@ -147,6 +152,19 @@ export default function NewRequest() {
       const currentValues = Array.isArray(previous[name]) ? (previous[name] as string[]) : [];
       if (checked) return { ...previous, [name]: [...new Set([...currentValues, value])] };
       return { ...previous, [name]: currentValues.filter((currentValue) => currentValue !== value) };
+    });
+  };
+
+  const handleCopyData = (sourcePrefix: string, targetPrefix: string) => {
+    setFormData((prev) => {
+      const newData = { ...prev };
+      Object.keys(newData).forEach((key) => {
+        if (key.startsWith(`${sourcePrefix}_`)) {
+          const suffix = key.replace(`${sourcePrefix}_`, "");
+          newData[`${targetPrefix}_${suffix}`] = newData[key];
+        }
+      });
+      return newData;
     });
   };
 
@@ -421,45 +439,131 @@ export default function NewRequest() {
       )}
 
       {step === 3 && schema && (
-        <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-          <div className="space-y-6">
-            <SectionCard title={editId ? "Edicion del borrador" : schema.title} description="Completa la informacion tecnica y revisa los datos clave antes de enviar." icon={FileText}>
-              <div className="grid gap-5">
-                <div>
-                  <label htmlFor="clientName" className="form-label">Nombre del cliente / tomador *</label>
-                  <input id="clientName" type="text" value={clientName} onChange={(event) => setClientName(event.target.value)} className="form-input" placeholder="Nombre del cliente" required />
-                </div>
-                <div>
-                  <label htmlFor="observaciones" className="form-label">Observaciones internas</label>
-                  <textarea id="observaciones" value={observaciones} onChange={(event) => setObservaciones(event.target.value)} className="form-input min-h-[110px] resize-y" placeholder="Notas internas para el equipo de gestion." />
-                </div>
-              </div>
-            </SectionCard>
+        <div className="space-y-6">
+          {groupedFields.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {groupedFields.map((section, idx) => (
+                <button
+                  key={section.title}
+                  type="button"
+                  onClick={() => setCurrentSectionIndex(idx)}
+                  className={clsx(
+                    "rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors",
+                    currentSectionIndex === idx
+                      ? "border-[hsl(350_78%_50%_/_0.38)] bg-[hsl(350_78%_50%)] text-white shadow-[var(--shadow-glow)]"
+                      : "border-[hsl(220_16%_86%_/_0.82)] bg-white/60 text-[hsl(219_18%_52%)] hover:bg-white"
+                  )}
+                >
+                  {idx + 1}. {section.title}
+                </button>
+              ))}
+            </div>
+          )}
 
-            {groupedFields.map((section) => (
-              <FormSection key={section.title} title={section.title} description="Rellena con el mayor nivel de detalle posible para agilizar la cotizacion.">
+          <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
+            {/* Left Column: Summary */}
+            <div className="space-y-6">
+              <SurfaceCard padding="lg">
+                <div className="relative z-10 space-y-4">
+                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[hsl(350_78%_50%)]">Resumen</p>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_18%_52%)]">Ramo</p>
+                      <p className="mt-1 text-base font-semibold text-[hsl(222_38%_12%)]">{type}</p>
+                    </div>
+                    <div>
+                      <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_18%_52%)]">Cliente</p>
+                      <p className="mt-1 text-base font-semibold text-[hsl(222_38%_12%)]">{clientName || "Pendiente"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_18%_52%)]">Campos informados</p>
+                      <p className="mt-1 text-base font-semibold text-[hsl(222_38%_12%)]">{Object.values(formData).filter(Boolean).length}</p>
+                    </div>
+                  </div>
+                </div>
+              </SurfaceCard>
+
+              <SurfaceCard padding="lg">
+                <div className="relative z-10 space-y-3">
+                  <p className="text-base font-semibold tracking-[-0.02em] text-[hsl(222_38%_12%)]">Checklist de envio</p>
+                  <ul className="space-y-2 text-sm text-[hsl(219_18%_52%)]">
+                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[hsl(152_58%_42%)]" /> Identificacion del cliente cumplimentada.</li>
+                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[hsl(152_58%_42%)]" /> Riesgo documentado con informacion suficiente.</li>
+                    <li className="flex items-center gap-2"><Paperclip className="h-4 w-4 text-[hsl(350_78%_50%)]" /> Los adjuntos se incorporan en el siguiente paso.</li>
+                  </ul>
+                </div>
+              </SurfaceCard>
+            </div>
+
+            {/* Right Column: Form */}
+            <div className="space-y-6">
+              {currentSectionIndex === 0 && (
+                <SectionCard title={editId ? "Edicion del borrador" : schema.title} description="Completa la informacion tecnica y revisa los datos clave antes de enviar." icon={FileText}>
+                <div className="grid gap-5">
+                  <div>
+                    <label htmlFor="clientName" className="form-label">Nombre del cliente / tomador *</label>
+                    <input id="clientName" type="text" value={clientName} onChange={(event) => setClientName(event.target.value)} className="form-input" placeholder="Nombre del cliente" required />
+                  </div>
+                  <div>
+                    <label htmlFor="observaciones" className="form-label">Observaciones internas</label>
+                    <textarea id="observaciones" value={observaciones} onChange={(event) => setObservaciones(event.target.value)} className="form-input min-h-[110px] resize-y" placeholder="Notas internas para el equipo de gestion." />
+                  </div>
+                </div>
+              </SectionCard>
+            )}
+
+            {groupedFields[currentSectionIndex] && (
+              <FormSection key={groupedFields[currentSectionIndex].title} title={groupedFields[currentSectionIndex].title} description="Rellena con el mayor nivel de detalle posible para agilizar la cotizacion.">
+                {type === "Auto" && groupedFields[currentSectionIndex].title === "Propietario" && (
+                  <div className="col-span-full mb-1">
+                    <AppButton type="button" variant="secondary" onClick={() => handleCopyData("tomador", "propietario")}>
+                      Copiar Datos de Tomador
+                    </AppButton>
+                  </div>
+                )}
+                {type === "Auto" && groupedFields[currentSectionIndex].title === "Conductor habitual" && (
+                  <div className="col-span-full mb-1 flex flex-wrap gap-3">
+                    <AppButton type="button" variant="secondary" onClick={() => handleCopyData("tomador", "conductor")}>
+                      Copiar Datos de Tomador
+                    </AppButton>
+                    <AppButton type="button" variant="secondary" onClick={() => handleCopyData("propietario", "conductor")}>
+                      Copiar Datos del Propietario
+                    </AppButton>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
-                  {section.fields.map((field) => <React.Fragment key={field.name}>{renderField(field)}</React.Fragment>)}
+                  {groupedFields[currentSectionIndex].fields.map((field) => <React.Fragment key={field.name}>{renderField(field)}</React.Fragment>)}
                 </div>
               </FormSection>
-            ))}
+            )}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <AppButton variant="secondary" onClick={() => setStep(2)}>
+              <AppButton variant="secondary" onClick={() => {
+                if (currentSectionIndex > 0) setCurrentSectionIndex((prev) => prev - 1);
+                else setStep(2);
+              }}>
                 <ArrowLeft className="h-4 w-4" />
-                Volver
+                {currentSectionIndex > 0 ? "Sección anterior" : "Volver"}
               </AppButton>
-              <AppButton onClick={() => setStep(4)}>
-                Continuar a adjuntos
+              <AppButton onClick={() => {
+                if (currentSectionIndex < groupedFields.length - 1) setCurrentSectionIndex((prev) => prev + 1);
+                else setStep(4);
+              }}>
+                {currentSectionIndex < groupedFields.length - 1 ? "Siguiente sección" : "Continuar a adjuntos"}
                 <ArrowRight className="h-4 w-4" />
               </AppButton>
             </div>
+            </div>
           </div>
+        </div>
+      )}
 
+      {step === 4 && (
+        <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
           <div className="space-y-6">
             <SurfaceCard padding="lg">
               <div className="relative z-10 space-y-4">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[hsl(350_78%_50%)]">Resumen</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[hsl(350_78%_50%)]">Resumen del envio</p>
                 <div className="space-y-3">
                   <div>
                     <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_18%_52%)]">Ramo</p>
@@ -470,8 +574,8 @@ export default function NewRequest() {
                     <p className="mt-1 text-base font-semibold text-[hsl(222_38%_12%)]">{clientName || "Pendiente"}</p>
                   </div>
                   <div>
-                    <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_18%_52%)]">Campos informados</p>
-                    <p className="mt-1 text-base font-semibold text-[hsl(222_38%_12%)]">{Object.values(formData).filter(Boolean).length}</p>
+                    <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_18%_52%)]">Adjuntos</p>
+                    <p className="mt-1 text-base font-semibold text-[hsl(222_38%_12%)]">{attachments.length}</p>
                   </div>
                 </div>
               </div>
@@ -479,20 +583,12 @@ export default function NewRequest() {
 
             <SurfaceCard padding="lg">
               <div className="relative z-10 space-y-3">
-                <p className="text-base font-semibold tracking-[-0.02em] text-[hsl(222_38%_12%)]">Checklist de envio</p>
-                <ul className="space-y-2 text-sm text-[hsl(219_18%_52%)]">
-                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[hsl(152_58%_42%)]" /> Identificacion del cliente cumplimentada.</li>
-                  <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[hsl(152_58%_42%)]" /> Riesgo documentado con informacion suficiente.</li>
-                  <li className="flex items-center gap-2"><Paperclip className="h-4 w-4 text-[hsl(350_78%_50%)]" /> Los adjuntos se incorporan en el siguiente paso.</li>
-                </ul>
+                <p className="text-base font-semibold tracking-[-0.02em] text-[hsl(222_38%_12%)]">Destino operativo</p>
+                <p className="text-sm leading-6 text-[hsl(219_18%_52%)]">La solicitud se remitira por correo estructurado para su cotizacion y gestion en la delegacion de Candeleda.</p>
               </div>
             </SurfaceCard>
           </div>
-        </div>
-      )}
 
-      {step === 4 && (
-        <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
           <SectionCard title="Documentacion adicional" description="Adjunta polizas, recibos o documentos de soporte antes de enviar la solicitud." icon={Paperclip}>
             <div className="space-y-6">
               <label htmlFor="docs-upload" className="flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-[1.35rem] border border-dashed border-[hsl(220_16%_86%)] bg-white/70 px-6 py-10 text-center transition hover:border-[hsl(350_78%_50%_/_0.38)] hover:bg-[hsl(350_78%_50%_/_0.05)]">
@@ -538,35 +634,6 @@ export default function NewRequest() {
               </div>
             </div>
           </SectionCard>
-
-          <div className="space-y-6">
-            <SurfaceCard padding="lg">
-              <div className="relative z-10 space-y-4">
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[hsl(350_78%_50%)]">Resumen del envio</p>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_18%_52%)]">Ramo</p>
-                    <p className="mt-1 text-base font-semibold text-[hsl(222_38%_12%)]">{type}</p>
-                  </div>
-                  <div>
-                    <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_18%_52%)]">Cliente</p>
-                    <p className="mt-1 text-base font-semibold text-[hsl(222_38%_12%)]">{clientName || "Pendiente"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_18%_52%)]">Adjuntos</p>
-                    <p className="mt-1 text-base font-semibold text-[hsl(222_38%_12%)]">{attachments.length}</p>
-                  </div>
-                </div>
-              </div>
-            </SurfaceCard>
-
-            <SurfaceCard padding="lg">
-              <div className="relative z-10 space-y-3">
-                <p className="text-base font-semibold tracking-[-0.02em] text-[hsl(222_38%_12%)]">Destino operativo</p>
-                <p className="text-sm leading-6 text-[hsl(219_18%_52%)]">La solicitud se remitira por correo estructurado para su cotizacion y gestion en la delegacion de Candeleda.</p>
-              </div>
-            </SurfaceCard>
-          </div>
         </div>
       )}
     </div>
