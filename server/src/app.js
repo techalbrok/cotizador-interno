@@ -13,7 +13,9 @@ import extractRoutes from './routes/extractRoutes.js';
 import delegacionRoutes from './routes/delegacionRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
-dotenv.config();
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 const app = express();
 
