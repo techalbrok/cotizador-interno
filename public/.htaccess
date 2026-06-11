@@ -1,0 +1,41 @@
+# .htaccess para el subdominio cotizadorinterno.albroxfera.es
+# Bypassea LiteSpeed Cache (LSCWP) y cualquier cache de proxy para la SPA y la API.
+# Esto es lo que evita el 503 cacheado en el navegador.
+
+<IfModule LiteSpeed>
+  CacheDisable on
+</IfModule>
+
+<IfModule mod_cache.c>
+  CacheDisable on
+</IfModule>
+
+# Sin cache para index HTML (debe ser siempre fresco)
+<FilesMatch "\.(html|htm)$">
+  <IfModule mod_headers.c>
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </IfModule>
+</FilesMatch>
+
+# Sin cache para la API
+<FilesMatch "^/api/">
+  <IfModule mod_headers.c>
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+  </IfModule>
+</FilesMatch>
+
+# Cache agresivo para assets con hash (vite los nombra con hash)
+<FilesMatch "\.(js|css|woff2?|ttf|svg|png|jpg|jpeg|gif|webp)$">
+  <IfModule mod_headers.c>
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </IfModule>
+</FilesMatch>
+
+# Quitar signature de servidor por seguridad
+<IfModule mod_headers.c>
+  Header unset Server
+  Header unset X-Powered-By
+</IfModule>
