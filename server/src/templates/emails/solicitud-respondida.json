@@ -1,0 +1,11 @@
+{
+  "title": "Solicitud respondida",
+  "greeting": "Hola {{destinatarioNombre}},",
+  "intro": "La solicitud ha sido respondida. Pulse el boton inferior para revisar la respuesta y los adjuntos.",
+  "fields": [
+    { "label": "Referencia", "value": "{{solicitud.referencia}}" },
+    { "label": "Ramo", "value": "{{solicitud.ramo}}" },
+    { "label": "Estado actual", "value": "{{solicitud.estado}}" },
+    { "label": "Cliente", "value": "{{clienteNombre}}" }
+  ]
+}

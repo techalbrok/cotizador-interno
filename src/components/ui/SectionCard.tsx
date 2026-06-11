@@ -24,29 +24,27 @@ export default function SectionCard({
 }: SectionCardProps) {
   return (
     <SurfaceCard padding="none" className={clsx("section-panel overflow-hidden", className)}>
-      <div className="border-b border-[hsl(220_16%_86%_/_0.68)] bg-white/68 px-5 py-4 sm:px-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-3">
-            {Icon && (
-              <span className="icon-badge h-11 w-11 rounded-[1rem]">
-                <Icon className="h-5 w-5" />
-              </span>
+      <div className="flex items-start justify-between gap-3 border-b border-[hsl(220_14%_88%_/_0.8)] bg-[hsl(220_22%_97%_/_0.4)] px-4 py-2.5">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {Icon && (
+            <span className="icon-badge h-7 w-7 rounded-md shrink-0">
+              <Icon className="h-3.5 w-3.5" />
+            </span>
+          )}
+          <div className="min-w-0">
+            <h2 className="text-[0.9rem] font-semibold tracking-[-0.01em] text-[hsl(222_38%_12%)] leading-tight">
+              {title}
+            </h2>
+            {description && (
+              <p className="mt-0.5 text-[0.78rem] text-[hsl(219_14%_46%)] leading-snug truncate">
+                {description}
+              </p>
             )}
-            <div>
-              <h2 className="text-lg font-semibold tracking-[-0.02em] text-[hsl(222_38%_12%)]">
-                {title}
-              </h2>
-              {description && (
-                <p className="mt-1 text-sm text-[hsl(219_18%_52%)]">
-                  {description}
-                </p>
-              )}
-            </div>
           </div>
-          {actions && <div className="flex flex-wrap items-center gap-3">{actions}</div>}
         </div>
+        {actions && <div className="flex flex-wrap items-center gap-2 shrink-0">{actions}</div>}
       </div>
-      <div className={clsx("px-5 py-5 sm:px-6 sm:py-6", contentClassName)}>{children}</div>
+      <div className={clsx("px-4 py-4", contentClassName)}>{children}</div>
     </SurfaceCard>
   );
 }

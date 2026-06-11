@@ -30,28 +30,28 @@ export default function PageHeader({
   return (
     <section
       className={clsx(
-        "page-hero animate-rise-in before:absolute before:left-0 before:top-0 before:h-full before:w-1.5 before:rounded-l-[1.75rem]",
+        "page-hero animate-rise-in before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:rounded-l-[0.625rem]",
         accentClasses[accent],
         className
       )}
     >
-      <div className="relative z-10 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-start gap-4">
-          <span className="icon-badge h-14 w-14 rounded-[1.2rem]">
-            <Icon className="h-6 w-6" />
+      <div className="relative z-10 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="icon-badge h-8 w-8 rounded-md shrink-0">
+            <Icon className="h-4 w-4" />
           </span>
-          <div>
-            <h1 className="text-[1.9rem] font-extrabold tracking-[-0.035em] text-[hsl(222_38%_12%)]">
+          <div className="min-w-0">
+            <h1 className="text-[1.05rem] font-semibold tracking-[-0.015em] text-[hsl(222_38%_12%)] leading-tight">
               {title}
             </h1>
             {subtitle && (
-              <p className="mt-1 text-sm text-[hsl(219_18%_52%)] sm:text-base">
+              <p className="mt-0.5 text-[0.8rem] text-[hsl(219_14%_46%)] leading-snug">
                 {subtitle}
               </p>
             )}
           </div>
         </div>
-        {actions && <div className="relative z-10 flex flex-wrap items-center gap-3">{actions}</div>}
+        {actions && <div className="relative z-10 flex flex-wrap items-center gap-2 shrink-0">{actions}</div>}
       </div>
     </section>
   );

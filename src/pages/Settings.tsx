@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Ban, Building, CheckCircle2, Mail, Pencil, ShieldCheck, User, UserPlus } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../lib/api";
@@ -7,7 +7,7 @@ import DataTableShell from "../components/ui/DataTableShell";
 import PageHeader from "../components/ui/PageHeader";
 import SectionCard from "../components/ui/SectionCard";
 
-type UserRole = "operador" | "gestor" | "admin";
+type UserRole = "operador" | "gestor" | "admin" | "superadmin" | "avisador" | "tramitador_central";
 
 type AdminUser = {
   id: number;
@@ -18,6 +18,8 @@ type AdminUser = {
   delegacion_nombre?: string | null;
   activo: boolean;
   created_at: string;
+  comision_pactada?: number | null;
+  delegacion_asignada_id?: number | null;
 };
 
 type Delegacion = {
@@ -33,6 +35,13 @@ type UserFormState = {
   password: string;
   rol: UserRole;
   delegacion_id: string;
+  comision_pactada: string;
+  delegacion_asignada_id: string;
+};
+
+type DelegacionFormState = {
+  nombre: string;
+  email_contacto: string;
 };
 
 type PasswordFormState = {
@@ -60,6 +69,13 @@ const emptyForm: UserFormState = {
   password: "",
   rol: "operador",
   delegacion_id: "",
+  comision_pactada: "0",
+  delegacion_asignada_id: "",
+};
+
+const emptyDelegacionForm: DelegacionFormState = {
+  nombre: "",
+  email_contacto: "",
 };
 
 const emptyPasswordForm: PasswordFormState = {
@@ -85,10 +101,23 @@ const roleLabels: Record<UserRole, string> = {
   operador: "Operador",
   gestor: "Gestor",
   admin: "Administrador",
+  superadmin: "Super administrador",
+  avisador: "Avisador",
+  tramitador_central: "Tramitador central",
 };
 
 export default function Settings() {
   const { user, token } = useAuth();
+  const userInitials = useMemo(() => {
+    const nombre = user?.nombre || "U";
+    return nombre
+      .split(/\s+/)
+      .map((part) => part.charAt(0))
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  }, [user?.nombre]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [delegaciones, setDelegaciones] = useState<Delegacion[]>([]);
   const [adminLoading, setAdminLoading] = useState(false);
@@ -99,6 +128,10 @@ export default function Settings() {
   const [resettingUserId, setResettingUserId] = useState<number | null>(null);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [form, setForm] = useState<UserFormState>(emptyForm);
+  const [delegForm, setDelegForm] = useState<DelegacionFormState>(emptyDelegacionForm);
+  const [editingDelegId, setEditingDelegId] = useState<number | null>(null);
+  const [savingDeleg, setSavingDeleg] = useState(false);
+  const [togglingDelegId, setTogglingDelegId] = useState<number | null>(null);
   const [passwordForm, setPasswordForm] = useState<PasswordFormState>(emptyPasswordForm);
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
@@ -116,6 +149,86 @@ export default function Settings() {
     setForm(emptyForm);
     setEditingUserId(null);
     setTemporaryPassword("");
+  };
+
+  const resetDelegForm = () => {
+    setDelegForm(emptyDelegacionForm);
+    setEditingDelegId(null);
+  };
+
+  const handleEditDeleg = (selectedDeleg: Delegacion) => {
+    setEditingDelegId(selectedDeleg.id);
+    setAdminError("");
+    setAdminSuccess("");
+    setDelegForm({
+      nombre: selectedDeleg.nombre,
+      email_contacto: selectedDeleg.email_contacto,
+    });
+  };
+
+  const handleSubmitDeleg = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!token) return;
+
+    setSavingDeleg(true);
+    setAdminError("");
+    setAdminSuccess("");
+
+    try {
+      if (!delegForm.nombre || !delegForm.email_contacto) {
+        throw new Error("Completa nombre y email de contacto");
+      }
+
+      const response = await apiFetch(
+        editingDelegId ? `/api/delegaciones/${editingDelegId}` : "/api/delegaciones",
+        token,
+        {
+          method: editingDelegId ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(delegForm),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(await readResponseMessage(response));
+      }
+
+      setAdminSuccess(editingDelegId ? "Delegacion actualizada correctamente" : "Delegacion creada correctamente");
+      resetDelegForm();
+      await loadAdminData();
+    } catch (error) {
+      setAdminError(error instanceof Error ? error.message : "No se pudo guardar la delegacion");
+    } finally {
+      setSavingDeleg(false);
+    }
+  };
+
+  const handleToggleDelegActive = async (selectedDeleg: Delegacion) => {
+    if (!token) return;
+
+    setTogglingDelegId(selectedDeleg.id);
+    setAdminError("");
+    setAdminSuccess("");
+
+    try {
+      const response = await apiFetch(`/api/delegaciones/${selectedDeleg.id}/activo`, token, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activa: !selectedDeleg.activa }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await readResponseMessage(response));
+      }
+
+      setAdminSuccess(selectedDeleg.activa ? "Delegacion desactivada correctamente" : "Delegacion activada correctamente");
+      await loadAdminData();
+    } catch (error) {
+      setAdminError(error instanceof Error ? error.message : "No se pudo actualizar la delegacion");
+    } finally {
+      setTogglingDelegId(null);
+    }
   };
 
   const readResponseMessage = async (res: Response) => {
@@ -226,8 +339,11 @@ export default function Settings() {
   const handleFormChange = (field: keyof UserFormState, value: string) => {
     setForm((prev) => {
       const next = { ...prev, [field]: value };
-      if (field === "rol" && value === "admin") {
+      if (field === "rol" && (value === "admin" || value === "superadmin")) {
         next.delegacion_id = "";
+      }
+      if (field === "rol" && value !== "avisador") {
+        next.delegacion_asignada_id = "";
       }
       return next;
     });
@@ -252,6 +368,8 @@ export default function Settings() {
       password: "",
       rol: selectedUser.rol,
       delegacion_id: selectedUser.delegacion_id ? String(selectedUser.delegacion_id) : "",
+      comision_pactada: selectedUser.comision_pactada != null ? String(selectedUser.comision_pactada) : "0",
+      delegacion_asignada_id: selectedUser.delegacion_asignada_id ? String(selectedUser.delegacion_asignada_id) : "",
     });
   };
 
@@ -274,16 +392,25 @@ export default function Settings() {
         throw new Error("La contrasena es obligatoria para crear un usuario");
       }
 
-      if (form.rol !== "admin" && !form.delegacion_id) {
-        throw new Error("Selecciona una delegacion para operadores y gestores");
+      if (form.rol !== "admin" && form.rol !== "superadmin" && !form.delegacion_id) {
+        throw new Error("Selecciona una delegacion para operadores, gestores, avisadores y tramitadores");
+      }
+
+      if (form.rol === "avisador" && !form.delegacion_asignada_id) {
+        throw new Error("Selecciona la delegacion asignada para el avisador");
       }
 
       const payload: Record<string, string | number | null> = {
         nombre: form.nombre,
         email: form.email,
         rol: form.rol,
-        delegacion_id: form.rol === "admin" ? null : Number(form.delegacion_id),
+        delegacion_id: (form.rol === "admin" || form.rol === "superadmin") ? null : Number(form.delegacion_id),
       };
+
+      if (form.rol === "avisador") {
+        payload.comision_pactada = form.comision_pactada ? Number(form.comision_pactada) : 0;
+        payload.delegacion_asignada_id = form.delegacion_asignada_id ? Number(form.delegacion_asignada_id) : null;
+      }
 
       if (!editingUserId) {
         payload.password = form.password;
@@ -511,57 +638,57 @@ export default function Settings() {
   };
 
   return (
-    <div className="page-shell space-y-6 pb-6">
+    <div className="page-shell space-y-4 pb-4">
       <PageHeader
         title="Configuracion"
         subtitle="Gestiona tu perfil, seguridad, correo saliente y administracion con el mismo lenguaje visual del ecosistema Albroksa."
         icon={ShieldCheck}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+      <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
         <SectionCard
           title="Perfil de usuario"
           description="Informacion principal de la cuenta y asignacion operativa actual."
           icon={User}
         >
-          <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
-            <div className="rounded-[1.5rem] border border-[hsl(220_16%_86%_/_0.82)] bg-[linear-gradient(145deg,hsl(350_78%_50%_/_0.09),rgba(255,255,255,0.88),hsl(225_50%_52%_/_0.08))] p-6">
+          <div className="grid gap-4 lg:grid-cols-[180px_minmax(0,1fr)]">
+            <div className="rounded-lg border border-[hsl(220_14%_88%_/_0.85)] bg-[linear-gradient(145deg,hsl(350_78%_50%_/_0.06),rgba(255,255,255,0.92),hsl(225_50%_52%_/_0.06))] p-3">
               <div className="flex flex-col items-center text-center">
-                <div className="flex h-24 w-24 items-center justify-center rounded-[1.8rem] bg-[linear-gradient(135deg,hsl(226_46%_40%),hsl(232_46%_52%))] text-[2rem] font-extrabold text-white shadow-[0_16px_40px_rgba(53,77,163,0.28)]">
-                  {user?.nombre?.charAt(0).toUpperCase() || "U"}
+                <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-gradient-to-br from-[hsl(226_46%_40%)] to-[hsl(232_46%_52%)] text-[1.1rem] font-semibold text-white shadow-[0_4px_10px_rgba(53,77,163,0.22)]">
+                  {userInitials || user?.nombre?.charAt(0).toUpperCase() || "U"}
                 </div>
-                <h3 className="mt-4 text-xl font-extrabold tracking-[-0.03em] text-[hsl(222_38%_12%)]">
+                <h3 className="mt-2 text-[0.9rem] font-semibold tracking-[-0.01em] text-[hsl(222_38%_12%)] leading-tight">
                   {user?.nombre || "Usuario"}
                 </h3>
-                <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-[hsl(350_78%_50%_/_0.18)] bg-[hsl(350_78%_50%_/_0.08)] px-3 py-1.5 text-sm font-semibold text-[hsl(350_78%_50%)]">
-                  <ShieldCheck className="h-4 w-4" />
+                <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-[hsl(350_78%_50%_/_0.18)] bg-[hsl(350_78%_50%_/_0.08)] px-2 py-0.5 text-[0.7rem] font-semibold text-[hsl(350_78%_44%)] capitalize">
+                  <ShieldCheck className="h-3 w-3" />
                   {user?.rol || "Sin rol"}
                 </div>
               </div>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <label className="form-label">Delegacion</label>
-                <div className="form-input flex items-center gap-3 bg-white/75">
-                  <Building className="h-4 w-4 text-[hsl(219_18%_52%)]" />
-                  <span>{user?.delegacion_nombre || "Sede Central"}</span>
+                <div className="form-input flex items-center gap-2.5 bg-[hsl(220_22%_97%_/_0.5)] cursor-default">
+                  <Building className="h-3.5 w-3.5 text-[hsl(219_14%_46%)]" />
+                  <span className="truncate">{user?.delegacion_nombre || "Sede Central"}</span>
                 </div>
               </div>
               <div>
                 <label className="form-label">Correo electronico</label>
-                <div className="form-input flex items-center gap-3 bg-white/75">
-                  <Mail className="h-4 w-4 text-[hsl(219_18%_52%)]" />
+                <div className="form-input flex items-center gap-2.5 bg-[hsl(220_22%_97%_/_0.5)] cursor-default">
+                  <Mail className="h-3.5 w-3.5 text-[hsl(219_14%_46%)]" />
                   <span className="truncate">{user?.email || "-"}</span>
                 </div>
               </div>
               <div>
                 <label className="form-label">Rol operativo</label>
-                <div className="form-input bg-white/75 capitalize">{user?.rol || "-"}</div>
+                <div className="form-input bg-[hsl(220_22%_97%_/_0.5)] cursor-default capitalize">{user?.rol || "-"}</div>
               </div>
               <div>
                 <label className="form-label">Estado de acceso</label>
-                <div className="form-input bg-white/75">Activo</div>
+                <div className="form-input bg-[hsl(220_22%_97%_/_0.5)] cursor-default">Activo</div>
               </div>
             </div>
           </div>
@@ -572,8 +699,8 @@ export default function Settings() {
           description="Actualiza tu contrasena para mantener el acceso protegido."
           icon={ShieldCheck}
         >
-          <form className="space-y-5" onSubmit={handleChangePassword}>
-            <div className="grid gap-5 sm:grid-cols-2">
+          <form className="space-y-3" onSubmit={handleChangePassword}>
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="form-label">Contrasena actual</label>
                 <input
@@ -607,21 +734,21 @@ export default function Settings() {
             </div>
 
             {(passwordError || passwordSuccess) && (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {passwordError && (
-                  <div className="rounded-[1rem] border border-[hsl(353_83%_60%_/_0.18)] bg-[hsl(353_83%_60%_/_0.08)] px-4 py-3 text-sm font-semibold text-[hsl(353_72%_46%)]">
+                  <div className="rounded-md border border-[hsl(353_78%_52%_/_0.22)] bg-[hsl(353_78%_52%_/_0.08)] px-3 py-2 text-[0.8rem] font-medium text-[hsl(353_72%_44%)]">
                     {passwordError}
                   </div>
                 )}
                 {passwordSuccess && (
-                  <div className="rounded-[1rem] border border-[hsl(152_58%_42%_/_0.18)] bg-[hsl(152_58%_42%_/_0.08)] px-4 py-3 text-sm font-semibold text-[hsl(152_58%_30%)]">
+                  <div className="rounded-md border border-[hsl(152_58%_38%_/_0.22)] bg-[hsl(152_58%_38%_/_0.08)] px-3 py-2 text-[0.8rem] font-medium text-[hsl(152_58%_30%)]">
                     {passwordSuccess}
                   </div>
                 )}
               </div>
             )}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
               <AppButton type="submit" disabled={changingPassword}>
                 {changingPassword ? "Actualizando..." : "Cambiar contrasena"}
               </AppButton>
@@ -635,8 +762,8 @@ export default function Settings() {
         description="Configura la cuenta de correo desde la que se enviaran tus solicitudes y prueba la conectividad antes de usarla."
         icon={Mail}
       >
-        <div className="space-y-6">
-          <div className="flex flex-col justify-between gap-4 rounded-[1.35rem] border border-[hsl(220_16%_86%_/_0.82)] bg-[hsl(220_30%_99%_/_0.88)] px-5 py-4 md:flex-row md:items-center">
+        <div className="space-y-4">
+            <div className="flex flex-col justify-between gap-3 rounded-lg border border-[hsl(220_14%_88%_/_0.85)] bg-white px-3 py-2.5 md:flex-row md:items-center">
             <div>
               <p className="text-sm font-semibold text-[hsl(222_38%_12%)]">Usar mi cuenta SMTP para enviar solicitudes</p>
               <p className="mt-1 text-sm text-[hsl(219_18%_52%)]">
@@ -650,12 +777,12 @@ export default function Settings() {
                 onChange={(e) => handleSmtpFormChange("smtp_enabled", e.target.checked)}
                 className="peer sr-only"
               />
-              <div className="h-8 w-15 rounded-full bg-[hsl(220_16%_86%)] transition peer-checked:bg-[linear-gradient(135deg,hsl(350_78%_50%),hsl(358_88%_58%))] after:absolute after:left-[3px] after:top-[3px] after:h-6 after:w-6 after:rounded-full after:bg-white after:shadow-[0_8px_18px_rgba(10,16,34,0.16)] after:transition-all peer-checked:after:translate-x-7" />
+              <div className="h-6 w-11 rounded-full bg-[hsl(220_14%_88%)] transition-colors peer-checked:bg-[hsl(350_78%_50%)] after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-[0_1px_2px_rgba(10,16,34,0.18)] after:transition-transform after:duration-200 peer-checked:after:translate-x-5" />
             </label>
           </div>
 
           <form className="space-y-5" onSubmit={handleSaveSmtpSettings}>
-            <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr_240px]">
+            <div className="grid gap-3 xl:grid-cols-[1.25fr_0.75fr_240px]">
               <div>
                 <label className="form-label">Host SMTP</label>
                 <input
@@ -693,12 +820,12 @@ export default function Settings() {
             </p>
 
             {smtpForm.smtp_port.trim() === "465" && !smtpForm.smtp_secure && (
-              <div className="rounded-[1rem] border border-[hsl(33_90%_55%_/_0.22)] bg-[hsl(33_90%_55%_/_0.08)] px-4 py-3 text-sm font-semibold text-[hsl(28_88%_38%)]">
+              <div className="rounded-md border border-[hsl(33_90%_50%_/_0.22)] bg-[hsl(33_90%_50%_/_0.08)] px-3 py-2 text-[0.8rem] font-medium text-[hsl(28_88%_36%)]">
                 El puerto 465 requiere TLS activado.
               </div>
             )}
 
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <label className="form-label">Usuario SMTP</label>
                 <input
@@ -723,7 +850,7 @@ export default function Settings() {
               </div>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <label className="form-label">Nombre del remitente</label>
                 <input
@@ -750,7 +877,7 @@ export default function Settings() {
               <textarea
                 value={smtpForm.solicitud_destinatarios_email}
                 onChange={(e) => handleSmtpFormChange("solicitud_destinatarios_email", e.target.value)}
-                className="form-input min-h-[130px] resize-y"
+                className="form-input min-h-[96px] resize-y"
                 placeholder="Uno o varios emails separados por comas o saltos de linea"
               />
               <p className="mt-2 text-sm text-[hsl(219_18%_52%)]">
@@ -761,17 +888,17 @@ export default function Settings() {
             {(smtpLoading || smtpError || smtpSuccess) && (
               <div className="space-y-3">
                 {smtpLoading && (
-                  <div className="rounded-[1rem] border border-[hsl(216_90%_62%_/_0.18)] bg-[hsl(216_90%_62%_/_0.08)] px-4 py-3 text-sm font-semibold text-[hsl(216_90%_42%)]">
+                  <div className="rounded-md border border-[hsl(216_90%_62%_/_0.18)] bg-[hsl(216_90%_62%_/_0.08)] px-3 py-2 text-[0.8rem] font-medium text-[hsl(216_90%_40%)]">
                     Cargando configuracion SMTP...
                   </div>
                 )}
                 {smtpError && (
-                  <div className="rounded-[1rem] border border-[hsl(353_83%_60%_/_0.18)] bg-[hsl(353_83%_60%_/_0.08)] px-4 py-3 text-sm font-semibold text-[hsl(353_72%_46%)]">
+                  <div className="rounded-md border border-[hsl(353_78%_52%_/_0.22)] bg-[hsl(353_78%_52%_/_0.08)] px-3 py-2 text-[0.8rem] font-medium text-[hsl(353_72%_44%)]">
                     {smtpError}
                   </div>
                 )}
                 {smtpSuccess && (
-                  <div className="rounded-[1rem] border border-[hsl(152_58%_42%_/_0.18)] bg-[hsl(152_58%_42%_/_0.08)] px-4 py-3 text-sm font-semibold text-[hsl(152_58%_30%)]">
+                  <div className="rounded-md border border-[hsl(152_58%_38%_/_0.22)] bg-[hsl(152_58%_38%_/_0.08)] px-3 py-2 text-[0.8rem] font-medium text-[hsl(152_58%_30%)]">
                     {smtpSuccess}
                   </div>
                 )}
@@ -800,7 +927,7 @@ export default function Settings() {
           {(adminError || adminSuccess) && (
             <div className="space-y-3">
               {adminError && (
-                <div className="rounded-[1rem] border border-[hsl(353_83%_60%_/_0.18)] bg-[hsl(353_83%_60%_/_0.08)] px-4 py-3 text-sm font-semibold text-[hsl(353_72%_46%)]">
+                <div className="rounded-md border border-[hsl(353_78%_52%_/_0.22)] bg-[hsl(353_78%_52%_/_0.08)] px-3 py-2 text-[0.8rem] font-medium text-[hsl(353_72%_44%)]">
                   {adminError}
                 </div>
               )}
@@ -820,7 +947,7 @@ export default function Settings() {
             </div>
           )}
 
-          <div className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
+          <div className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
             <SectionCard
               title={editingUserId ? "Editar usuario" : "Nuevo usuario"}
               description="Alta y mantenimiento de usuarios, roles y delegaciones."
@@ -866,7 +993,7 @@ export default function Settings() {
                     <p className="mt-2 text-xs text-[hsl(219_18%_52%)]">Si la dejas vacia, se mantiene la contrasena actual.</p>
                   )}
                 </div>
-                <div className="grid gap-5 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label className="form-label">Rol</label>
                     <select
@@ -877,6 +1004,9 @@ export default function Settings() {
                       <option value="operador">Operador</option>
                       <option value="gestor">Gestor</option>
                       <option value="admin">Administrador</option>
+                      <option value="superadmin">Super administrador</option>
+                      <option value="avisador">Avisador</option>
+                      <option value="tramitador_central">Tramitador central</option>
                     </select>
                   </div>
                   <div>
@@ -884,10 +1014,10 @@ export default function Settings() {
                     <select
                       value={form.delegacion_id}
                       onChange={(e) => handleFormChange("delegacion_id", e.target.value)}
-                      disabled={form.rol === "admin"}
+                      disabled={form.rol === "admin" || form.rol === "superadmin"}
                       className="form-select"
                     >
-                      <option value="">{form.rol === "admin" ? "No aplica" : "Seleccionar delegacion"}</option>
+                      <option value="">{(form.rol === "admin" || form.rol === "superadmin") ? "No aplica" : "Seleccionar delegacion"}</option>
                       {delegaciones.filter((delegacion) => delegacion.activa).map((delegacion) => (
                         <option key={delegacion.id} value={delegacion.id}>
                           {delegacion.nombre}
@@ -896,6 +1026,40 @@ export default function Settings() {
                     </select>
                   </div>
                 </div>
+
+                {form.rol === "avisador" && (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="form-label">Comision pactada (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={form.comision_pactada}
+                        onChange={(e) => handleFormChange("comision_pactada", e.target.value)}
+                        className="form-input"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div>
+                      <label className="form-label">Delegacion asignada</label>
+                      <select
+                        value={form.delegacion_asignada_id}
+                        onChange={(e) => handleFormChange("delegacion_asignada_id", e.target.value)}
+                        className="form-select"
+                      >
+                        <option value="">Seleccionar delegacion</option>
+                        {delegaciones.filter((delegacion) => delegacion.activa).map((delegacion) => (
+                          <option key={delegacion.id} value={delegacion.id}>
+                            {delegacion.nombre}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-2 text-xs text-[hsl(219_18%_52%)]">El avisador pasara sus avisos a esta delegacion para su tramitacion.</p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                   {editingUserId && (
@@ -987,7 +1151,7 @@ export default function Settings() {
                     {users.map((listedUser) => (
                       <div
                         key={listedUser.id}
-                        className="rounded-[1.25rem] border border-[hsl(220_16%_86%_/_0.82)] bg-white/80 p-4"
+                        className="rounded-lg border border-[hsl(220_14%_88%_/_0.85)] bg-white p-3"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
@@ -1036,6 +1200,156 @@ export default function Settings() {
               )}
             </DataTableShell>
           </div>
+
+          <div className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)] mt-4">
+            <SectionCard
+              title={editingDelegId ? "Editar delegacion" : "Nueva delegacion"}
+              description="Alta y edicion de delegaciones operativas."
+              icon={Building}
+              actions={
+                editingDelegId ? (
+                  <AppButton variant="secondary" onClick={resetDelegForm}>
+                    Cancelar edicion
+                  </AppButton>
+                ) : undefined
+              }
+            >
+              <form className="space-y-5" onSubmit={handleSubmitDeleg}>
+                <div>
+                  <label className="form-label">Nombre</label>
+                  <input
+                    value={delegForm.nombre}
+                    onChange={(e) => setDelegForm(prev => ({ ...prev, nombre: e.target.value }))}
+                    className="form-input"
+                    placeholder="Nombre de la delegacion"
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Email de contacto</label>
+                  <input
+                    type="email"
+                    value={delegForm.email_contacto}
+                    onChange={(e) => setDelegForm(prev => ({ ...prev, email_contacto: e.target.value }))}
+                    className="form-input"
+                    placeholder="delegacion@albroksa.com"
+                  />
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                  {editingDelegId && (
+                    <AppButton variant="secondary" onClick={resetDelegForm}>
+                      Cancelar
+                    </AppButton>
+                  )}
+                  <AppButton type="submit" disabled={savingDeleg}>
+                    {savingDeleg ? "Guardando..." : editingDelegId ? "Actualizar delegacion" : "Crear delegacion"}
+                  </AppButton>
+                </div>
+              </form>
+            </SectionCard>
+
+            <DataTableShell
+              title="Delegaciones"
+              description="Gestion centralizada de delegaciones operativas."
+              actions={<span className="text-sm font-semibold text-[hsl(219_18%_52%)]">{delegaciones.length} registradas</span>}
+            >
+              {adminLoading ? (
+                <div className="px-5 py-8 text-sm text-[hsl(219_18%_52%)] sm:px-6">Cargando delegaciones...</div>
+              ) : (
+                <>
+                  <div className="hidden md:block">
+                    <table className="data-table min-w-full">
+                      <thead>
+                        <tr>
+                          <th>Nombre</th>
+                          <th>Email de Contacto</th>
+                          <th>Estado</th>
+                          <th className="text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {delegaciones.map((listedDeleg) => (
+                          <tr key={listedDeleg.id}>
+                            <td>
+                              <span className="font-semibold text-[hsl(222_38%_12%)]">{listedDeleg.nombre}</span>
+                            </td>
+                            <td>{listedDeleg.email_contacto}</td>
+                            <td>
+                              <span
+                                className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
+                                  listedDeleg.activa
+                                    ? "bg-[hsl(152_58%_42%_/_0.1)] text-[hsl(152_58%_30%)]"
+                                    : "bg-[hsl(353_83%_60%_/_0.1)] text-[hsl(353_72%_46%)]"
+                                }`}
+                              >
+                                {listedDeleg.activa ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
+                                {listedDeleg.activa ? "Activa" : "Inactiva"}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="flex justify-end gap-2">
+                                <AppButton variant="secondary" size="sm" onClick={() => handleEditDeleg(listedDeleg)}>
+                                  <Pencil className="h-4 w-4" />
+                                  Editar
+                                </AppButton>
+                                <AppButton
+                                  variant={listedDeleg.activa ? "danger" : "secondary"}
+                                  size="sm"
+                                  onClick={() => handleToggleDelegActive(listedDeleg)}
+                                  disabled={togglingDelegId === listedDeleg.id}
+                                >
+                                  {listedDeleg.activa ? <Ban className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+                                  {listedDeleg.activa ? "Desactivar" : "Activar"}
+                                </AppButton>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="grid gap-4 p-5 md:hidden">
+                    {delegaciones.map((listedDeleg) => (
+                      <div
+                        key={listedDeleg.id}
+                        className="rounded-lg border border-[hsl(220_14%_88%_/_0.85)] bg-white p-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-[hsl(222_38%_12%)]">{listedDeleg.nombre}</p>
+                            <p className="mt-1 text-xs text-[hsl(219_18%_52%)]">{listedDeleg.email_contacto}</p>
+                          </div>
+                          <span
+                            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
+                              listedDeleg.activa
+                                ? "bg-[hsl(152_58%_42%_/_0.1)] text-[hsl(152_58%_30%)]"
+                                : "bg-[hsl(353_83%_60%_/_0.1)] text-[hsl(353_72%_46%)]"
+                            }`}
+                          >
+                            {listedDeleg.activa ? "Activa" : "Inactiva"}
+                          </span>
+                        </div>
+                        <div className="mt-4 flex flex-col gap-2">
+                          <AppButton variant="secondary" size="sm" onClick={() => handleEditDeleg(listedDeleg)}>
+                            <Pencil className="h-4 w-4" />
+                            Editar
+                          </AppButton>
+                          <AppButton
+                            variant={listedDeleg.activa ? "danger" : "secondary"}
+                            size="sm"
+                            onClick={() => handleToggleDelegActive(listedDeleg)}
+                            disabled={togglingDelegId === listedDeleg.id}
+                          >
+                            {listedDeleg.activa ? "Desactivar" : "Activar"}
+                          </AppButton>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </DataTableShell>
+          </div>
         </div>
       )}
 
@@ -1051,7 +1365,7 @@ export default function Settings() {
           ].map((label) => (
             <div
               key={label}
-              className="flex items-center justify-between gap-4 rounded-[1.25rem] border border-[hsl(220_16%_86%_/_0.82)] bg-[hsl(220_30%_99%_/_0.88)] px-5 py-4"
+              className="flex items-center justify-between gap-3 rounded-lg border border-[hsl(220_14%_88%_/_0.85)] bg-white px-3 py-2.5"
             >
               <span className="text-sm font-semibold text-[hsl(222_38%_12%)]">{label}</span>
               <label className="relative inline-flex cursor-pointer items-center">

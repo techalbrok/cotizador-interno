@@ -1,0 +1,11 @@
+{
+  "title": "Solicitud cancelada",
+  "greeting": "Hola {{destinatarioNombre}},",
+  "intro": "La solicitud ha sido cancelada. A continuacion se detallan los datos del cambio.",
+  "fields": [
+    { "label": "Referencia", "value": "{{solicitud.referencia}}" },
+    { "label": "Ramo", "value": "{{solicitud.ramo}}" },
+    { "label": "Estado actual", "value": "{{solicitud.estado}}" },
+    { "label": "Cliente", "value": "{{clienteNombre}}" }
+  ]
+}

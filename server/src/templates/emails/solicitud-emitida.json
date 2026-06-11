@@ -1,0 +1,11 @@
+{
+  "title": "Solicitud emitida",
+  "greeting": "Hola {{destinatarioNombre}},",
+  "intro": "La solicitud ha sido marcada como emitida. La poliza ha sido generada correctamente.",
+  "fields": [
+    { "label": "Referencia", "value": "{{solicitud.referencia}}" },
+    { "label": "Ramo", "value": "{{solicitud.ramo}}" },
+    { "label": "Estado actual", "value": "{{solicitud.estado}}" },
+    { "label": "Cliente", "value": "{{clienteNombre}}" }
+  ]
+}

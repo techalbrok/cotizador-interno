@@ -1,13 +1,12 @@
 import { findAllUsers, findUserById, createUser, updateUser, toggleUserActive } from '../models/userModel.js';
 import bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
+import { createUserSchema, updateUserSchema, toggleUserActiveSchema } from '../schemas/userSchemas.js';
 
-const generateTemporaryPassword = () => {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
-  const bytes = randomBytes(12);
-
-  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('');
-};
+const formatZodError = (error) => ({
+  message: 'Payload invalido',
+  errors: error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+});
 
 export const getUsers = async (req, res, next) => {
   try {
@@ -20,18 +19,22 @@ export const getUsers = async (req, res, next) => {
 
 export const create = async (req, res, next) => {
   try {
-    const { nombre, email, password, rol, delegacion_id } = req.body;
-
-    if (!nombre || !email || !password || !rol) {
-      return res.status(400).json({ message: 'Nombre, email, contraseña y rol son obligatorios' });
+    const parsed = createUserSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(formatZodError(parsed.error));
     }
-
-    if (rol !== 'admin' && !delegacion_id) {
-      return res.status(400).json({ message: 'La delegación es obligatoria para operadores y gestores' });
-    }
+    const { nombre, email, password, rol, delegacion_id, comision_pactada, delegacion_asignada_id } = parsed.data;
 
     const password_hash = await bcrypt.hash(password, 10);
-    const userId = await createUser({ nombre, email, password_hash, rol, delegacion_id: rol === 'admin' ? null : delegacion_id });
+    const userId = await createUser({
+      nombre,
+      email,
+      password_hash,
+      rol,
+      delegacion_id: (rol === 'admin' || rol === 'superadmin') ? null : delegacion_id,
+      comision_pactada: comision_pactada ?? 0,
+      delegacion_asignada_id: delegacion_asignada_id ?? null,
+    });
     res.status(201).json({ id: userId, message: 'Usuario creado correctamente' });
   } catch (error) {
     next(error);
@@ -41,15 +44,11 @@ export const create = async (req, res, next) => {
 export const update = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { nombre, email, rol, delegacion_id, password } = req.body;
-
-    if (!nombre || !email || !rol) {
-      return res.status(400).json({ message: 'Nombre, email y rol son obligatorios' });
+    const parsed = updateUserSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(formatZodError(parsed.error));
     }
-
-    if (rol !== 'admin' && !delegacion_id) {
-      return res.status(400).json({ message: 'La delegación es obligatoria para operadores y gestores' });
-    }
+    const { nombre, email, rol, delegacion_id, comision_pactada, delegacion_asignada_id, password } = parsed.data;
 
     const user = await findUserById(id);
     if (!user) {
@@ -60,7 +59,9 @@ export const update = async (req, res, next) => {
       nombre,
       email,
       rol,
-      delegacion_id: rol === 'admin' ? null : delegacion_id,
+      delegacion_id: (rol === 'admin' || rol === 'superadmin') ? null : delegacion_id,
+      comision_pactada: comision_pactada ?? user.comision_pactada ?? 0,
+      delegacion_asignada_id: delegacion_asignada_id ?? user.delegacion_asignada_id ?? null,
     };
 
     if (password) {
@@ -83,14 +84,18 @@ export const resetPassword = async (req, res, next) => {
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
 
-    const temporaryPassword = generateTemporaryPassword();
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+    const bytes = randomBytes(12);
+    const temporaryPassword = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
     const password_hash = await bcrypt.hash(temporaryPassword, 10);
 
     await updateUser(id, {
       nombre: user.nombre,
       email: user.email,
       rol: user.rol,
-      delegacion_id: user.rol === 'admin' ? null : user.delegacion_id,
+      delegacion_id: (user.rol === 'admin' || user.rol === 'superadmin') ? null : user.delegacion_id,
+      comision_pactada: user.comision_pactada,
+      delegacion_asignada_id: user.delegacion_asignada_id,
       password_hash,
     });
 
@@ -106,7 +111,11 @@ export const resetPassword = async (req, res, next) => {
 export const toggleActive = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { activo } = req.body;
+    const parsed = toggleUserActiveSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(formatZodError(parsed.error));
+    }
+    const { activo } = parsed.data;
 
     if (req.user.id === Number(id) && activo === false) {
       return res.status(400).json({ message: 'No puedes desactivar tu propio usuario' });

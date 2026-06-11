@@ -20,14 +20,12 @@ export default function DataTableShell({
   return (
     <SurfaceCard padding="none" className={clsx("overflow-hidden", className)}>
       {(title || description || actions) && (
-        <div className="border-b border-[hsl(220_16%_86%_/_0.7)] px-5 py-4 sm:px-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              {title && <h3 className="text-lg font-semibold tracking-[-0.02em] text-[hsl(222_38%_12%)]">{title}</h3>}
-              {description && <p className="mt-1 text-sm text-[hsl(219_18%_52%)]">{description}</p>}
-            </div>
-            {actions && <div className="flex flex-wrap items-center gap-3">{actions}</div>}
+        <div className="flex flex-col gap-3 border-b border-[hsl(220_14%_88%_/_0.8)] bg-[hsl(220_22%_97%_/_0.4)] px-4 py-2.5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            {title && <h3 className="text-[0.9rem] font-semibold tracking-[-0.01em] text-[hsl(222_38%_12%)] leading-tight">{title}</h3>}
+            {description && <p className="mt-0.5 text-[0.78rem] text-[hsl(219_14%_46%)] leading-snug">{description}</p>}
           </div>
+          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
         </div>
       )}
       <div className="table-scroll">{children}</div>

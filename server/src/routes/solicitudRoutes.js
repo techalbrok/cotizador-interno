@@ -5,6 +5,7 @@ import { listSolicitudes, getSolicitud, create, update, changeEstado, enviar, re
 import { uploadAdjuntos, getAdjuntos } from '../controllers/adjuntoController.js';
 import { authenticate } from '../middleware/auth.js';
 import { allowedUploadExtensions, allowedUploadMimeTypes } from '../utils/fileValidation.js';
+import { validateSolicitudPayload } from '../middleware/validateSolicitudPayload.js';
 
 const router = express.Router();
 
@@ -38,7 +39,7 @@ router.use(authenticate);
 
 router.get('/', listSolicitudes);
 router.get('/:id', getSolicitud);
-router.post('/', create);
+router.post('/', validateSolicitudPayload, create);
 router.put('/:id', update);
 router.put('/:id/estado', changeEstado);
 router.post('/:id/enviar', enviar);

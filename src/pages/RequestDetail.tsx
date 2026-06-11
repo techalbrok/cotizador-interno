@@ -197,7 +197,7 @@ export default function RequestDetail() {
   const clientName = String(request.datos_formulario?.nombre_cliente || request.creador_nombre || "Cliente");
 
   return (
-    <div className="page-shell space-y-6 pb-6">
+    <div className="page-shell space-y-4 pb-4">
       {toast && (
         <div className={`fixed bottom-4 right-4 z-50 rounded-[1.1rem] px-5 py-3 text-sm font-semibold text-white shadow-lg ${toast.type === "success" ? "bg-[hsl(152_58%_42%)]" : "bg-[hsl(350_78%_50%)]"}`}>
           {toast.message}
@@ -230,7 +230,7 @@ export default function RequestDetail() {
         ].map((item) => (
           <SurfaceCard key={item.label}>
             <div className="relative z-10 flex items-start gap-4">
-              <span className="icon-badge h-12 w-12 rounded-[1rem]" data-tone="neutral">
+              <span className="icon-badge h-9 w-9 rounded-md" data-tone="neutral">
                 <item.icon className="h-5 w-5" />
               </span>
               <div>
@@ -242,12 +242,12 @@ export default function RequestDetail() {
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-        <div className="space-y-6">
+      <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
+        <div className="space-y-4">
           <SectionCard title="Datos del riesgo" description="Informacion consolidada del formulario remitido." icon={FileText}>
             <div className="grid gap-4 md:grid-cols-2">
               {Object.entries(request.datos_formulario || {}).map(([key, value]) => (
-                <div key={key} className="rounded-[1.15rem] border border-[hsl(220_16%_86%_/_0.72)] bg-white/72 p-4">
+                <div key={key} className="rounded-lg border border-[hsl(220_14%_88%_/_0.85)] bg-white p-3">
                   <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_18%_52%)]">
                     {key.replace(/_/g, " ")}
                   </p>
@@ -267,12 +267,12 @@ export default function RequestDetail() {
                     const isOwn = comment.usuario_id === user?.id;
                     return (
                       <div key={comment.id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[92%] rounded-[1.2rem] border px-4 py-3 ${isOwn ? "border-[hsl(350_78%_50%_/_0.18)] bg-[hsl(350_78%_50%_/_0.08)]" : "border-[hsl(220_16%_86%_/_0.75)] bg-white/76"}`}>
-                          <div className="flex flex-wrap items-center gap-2 text-xs text-[hsl(219_18%_52%)]">
+                        <div className={`max-w-[92%] rounded-lg border px-3 py-2 ${isOwn ? "border-[hsl(350_78%_50%_/_0.18)] bg-[hsl(350_78%_50%_/_0.08)]" : "border-[hsl(220_14%_88%_/_0.85)] bg-white"}`}>
+                          <div className="flex flex-wrap items-center gap-2 text-[0.72rem] text-[hsl(219_14%_46%)]">
                             <span className="font-semibold text-[hsl(222_38%_12%)]">{comment.usuario_nombre}</span>
-                            <span>{format(new Date(comment.created_at), "dd MMM yyyy, HH:mm", { locale: es })}</span>
+                            <span>{format(new Date(comment.created_at), "dd MMM, HH:mm", { locale: es })}</span>
                           </div>
-                          <p className="mt-2 text-sm leading-6 text-[hsl(222_38%_12%)]">{comment.comentario}</p>
+                          <p className="mt-1 text-[0.85rem] leading-snug text-[hsl(222_38%_12%)]">{comment.comentario}</p>
                         </div>
                       </div>
                     );
@@ -286,7 +286,7 @@ export default function RequestDetail() {
                 <textarea
                   value={newComment}
                   onChange={(event) => setNewComment(event.target.value)}
-                  className="form-input min-h-[110px] resize-y"
+                    className="form-input min-h-[80px] resize-y"
                   placeholder="Escribe un comentario o una nota interna..."
                 />
                 <div className="flex justify-end">
@@ -300,7 +300,7 @@ export default function RequestDetail() {
           </SectionCard>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           <SectionCard title="Acciones" description="Flujos disponibles segun el rol y el estado actual." icon={ShieldCheck}>
             <div className="grid gap-3">
               {user?.rol === "operador" ? (
@@ -356,7 +356,7 @@ export default function RequestDetail() {
                 {request.adjuntos.map((file: any) => (
                   <SurfaceCard key={file.id} variant="soft">
                     <div className="relative z-10 flex items-center gap-3">
-                      <span className="icon-badge h-11 w-11 rounded-[1rem]" data-tone="neutral">
+                      <span className="icon-badge h-8 w-8 rounded-md" data-tone="neutral">
                         <FileText className="h-4.5 w-4.5" />
                       </span>
                       <div className="min-w-0 flex-1">

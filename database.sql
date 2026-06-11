@@ -7,7 +7,9 @@ CREATE TABLE IF NOT EXISTS delegaciones (
   id INT AUTO_INCREMENT PRIMARY KEY,
   nombre VARCHAR(100) NOT NULL,
   email_contacto VARCHAR(150) NOT NULL,
-  activa BOOLEAN DEFAULT TRUE
+  parent_delegacion_id INT NULL,
+  activa BOOLEAN DEFAULT TRUE,
+  FOREIGN KEY (parent_delegacion_id) REFERENCES delegaciones(id)
 );
 
 -- 2. usuarios
@@ -16,8 +18,10 @@ CREATE TABLE IF NOT EXISTS usuarios (
   nombre VARCHAR(100) NOT NULL,
   email VARCHAR(150) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
-  rol ENUM('operador', 'gestor', 'admin') NOT NULL,
+  rol ENUM('operador', 'gestor', 'admin', 'superadmin', 'avisador', 'tramitador_central') NOT NULL,
   delegacion_id INT,
+  comision_pactada DECIMAL(5,2) DEFAULT 0.00,
+  delegacion_asignada_id INT NULL,
   activo BOOLEAN DEFAULT TRUE,
   smtp_enabled BOOLEAN NOT NULL DEFAULT FALSE,
   smtp_host VARCHAR(255) NULL,
@@ -29,7 +33,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
   smtp_from_email VARCHAR(255) NULL,
   solicitud_destinatarios_email TEXT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (delegacion_id) REFERENCES delegaciones(id)
+  FOREIGN KEY (delegacion_id) REFERENCES delegaciones(id),
+  FOREIGN KEY (delegacion_asignada_id) REFERENCES delegaciones(id)
 );
 
 -- 3. formularios_config
@@ -51,7 +56,11 @@ CREATE TABLE IF NOT EXISTS solicitudes (
   delegacion_origen_id INT NOT NULL,
   creado_por INT NOT NULL,
   datos_formulario JSON,
+  contiene_lopd_sensible BOOLEAN DEFAULT FALSE,
+  fecha_purgado DATETIME NULL,
   observaciones TEXT,
+  capital_estimado DECIMAL(12,2) NULL,
+  prima_estimada DECIMAL(12,2) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (delegacion_origen_id) REFERENCES delegaciones(id),
@@ -89,6 +98,7 @@ CREATE TABLE IF NOT EXISTS comentarios (
   solicitud_id INT NOT NULL,
   usuario_id INT NOT NULL,
   comentario TEXT NOT NULL,
+  es_interno BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (solicitud_id) REFERENCES solicitudes(id) ON DELETE CASCADE,
   FOREIGN KEY (usuario_id) REFERENCES usuarios(id)

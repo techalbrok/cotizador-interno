@@ -2,9 +2,9 @@ import pool from '../config/db.js';
 
 export const findUserByEmail = async (email) => {
   const [rows] = await pool.query(`
-    SELECT u.*, d.nombre as delegacion_nombre 
-    FROM usuarios u 
-    LEFT JOIN delegaciones d ON u.delegacion_id = d.id 
+    SELECT u.*, d.nombre as delegacion_nombre
+    FROM usuarios u
+    LEFT JOIN delegaciones d ON u.delegacion_id = d.id
     WHERE u.email = ? AND u.activo = TRUE
   `, [email]);
   return rows[0];
@@ -12,9 +12,9 @@ export const findUserByEmail = async (email) => {
 
 export const findUserById = async (id) => {
   const [rows] = await pool.query(`
-    SELECT u.id, u.nombre, u.email, u.rol, u.delegacion_id, u.activo, d.nombre as delegacion_nombre 
-    FROM usuarios u 
-    LEFT JOIN delegaciones d ON u.delegacion_id = d.id 
+    SELECT u.id, u.nombre, u.email, u.rol, u.delegacion_id, u.comision_pactada, u.delegacion_asignada_id, u.activo, d.nombre as delegacion_nombre
+    FROM usuarios u
+    LEFT JOIN delegaciones d ON u.delegacion_id = d.id
     WHERE u.id = ?
   `, [id]);
   return rows[0];
@@ -22,7 +22,7 @@ export const findUserById = async (id) => {
 
 export const findUserWithPasswordById = async (id) => {
   const [rows] = await pool.query(`
-    SELECT id, nombre, email, rol, delegacion_id, activo, password_hash
+    SELECT id, nombre, email, rol, delegacion_id, comision_pactada, delegacion_asignada_id, activo, password_hash
     FROM usuarios
     WHERE id = ?
   `, [id]);
@@ -40,7 +40,7 @@ export const findUserSmtpSettingsById = async (id) => {
 
 export const findAllUsers = async () => {
   const [rows] = await pool.query(`
-    SELECT u.id, u.nombre, u.email, u.rol, u.delegacion_id, u.activo, u.created_at, d.nombre as delegacion_nombre
+    SELECT u.id, u.nombre, u.email, u.rol, u.delegacion_id, u.comision_pactada, u.delegacion_asignada_id, u.activo, u.created_at, d.nombre as delegacion_nombre
     FROM usuarios u
     LEFT JOIN delegaciones d ON u.delegacion_id = d.id
     ORDER BY u.created_at DESC
@@ -49,28 +49,28 @@ export const findAllUsers = async () => {
 };
 
 export const createUser = async (userData) => {
-  const { nombre, email, password_hash, rol, delegacion_id } = userData;
+  const { nombre, email, password_hash, rol, delegacion_id, comision_pactada = 0, delegacion_asignada_id = null } = userData;
   const [result] = await pool.query(
-    'INSERT INTO usuarios (nombre, email, password_hash, rol, delegacion_id) VALUES (?, ?, ?, ?, ?)',
-    [nombre, email, password_hash, rol, delegacion_id]
+    'INSERT INTO usuarios (nombre, email, password_hash, rol, delegacion_id, comision_pactada, delegacion_asignada_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [nombre, email, password_hash, rol, delegacion_id, comision_pactada, delegacion_asignada_id]
   );
   return result.insertId;
 };
 
 export const updateUser = async (id, userData) => {
-  const { nombre, email, rol, delegacion_id, password_hash } = userData;
+  const { nombre, email, rol, delegacion_id, comision_pactada = null, delegacion_asignada_id = null, password_hash } = userData;
 
   if (password_hash) {
     await pool.query(
-      'UPDATE usuarios SET nombre = ?, email = ?, rol = ?, delegacion_id = ?, password_hash = ? WHERE id = ?',
-      [nombre, email, rol, delegacion_id, password_hash, id]
+      'UPDATE usuarios SET nombre = ?, email = ?, rol = ?, delegacion_id = ?, comision_pactada = ?, delegacion_asignada_id = ?, password_hash = ? WHERE id = ?',
+      [nombre, email, rol, delegacion_id, comision_pactada, delegacion_asignada_id, password_hash, id]
     );
     return;
   }
 
   await pool.query(
-    'UPDATE usuarios SET nombre = ?, email = ?, rol = ?, delegacion_id = ? WHERE id = ?',
-    [nombre, email, rol, delegacion_id, id]
+    'UPDATE usuarios SET nombre = ?, email = ?, rol = ?, delegacion_id = ?, comision_pactada = ?, delegacion_asignada_id = ? WHERE id = ?',
+    [nombre, email, rol, delegacion_id, comision_pactada, delegacion_asignada_id, id]
   );
 };
 

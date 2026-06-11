@@ -12,9 +12,9 @@ type SurfaceCardProps = {
 
 const paddingClasses = {
   none: "",
-  sm: "p-4",
-  md: "p-5 sm:p-6",
-  lg: "p-6 sm:p-7",
+  sm: "p-3",
+  md: "p-4",
+  lg: "p-5",
 };
 
 export default function SurfaceCard({

@@ -1,0 +1,13 @@
+{
+  "title": "Nueva solicitud de cotizacion",
+  "greeting": "Hola {{destinatarioNombre}},",
+  "intro": "Se ha generado una nueva solicitud en el canal interno. A continuacion encontrara los datos principales para su tramitacion.",
+  "fields": [
+    { "label": "Referencia", "value": "{{solicitud.referencia}}" },
+    { "label": "Ramo", "value": "{{solicitud.ramo}}" },
+    { "label": "Estado actual", "value": "{{solicitud.estado}}" },
+    { "label": "Cliente", "value": "{{clienteNombre}}" },
+    { "label": "Delegacion de origen", "value": "{{solicitud.delegacion_nombre}}" },
+    { "label": "Enviado por", "value": "{{usuario.nombre}}" }
+  ]
+}

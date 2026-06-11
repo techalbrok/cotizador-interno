@@ -11,6 +11,7 @@ import NewRequest from "./pages/NewRequest";
 import RequestDetail from "./pages/RequestDetail";
 import Login from "./pages/Login";
 import Settings from "./pages/Settings";
+import AvisadorDashboard from "./pages/AvisadorDashboard";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -20,12 +21,22 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RoleHomeRedirect() {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
+  if (user?.rol === "avisador") {
+    return <Navigate to="/avisador" replace />;
+  }
+  return <Dashboard />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-        <Route index element={<Dashboard />} />
+        <Route index element={<RoleHomeRedirect />} />
+        <Route path="avisador" element={<AvisadorDashboard />} />
         <Route path="new" element={<NewRequest />} />
         <Route path="request/:id" element={<RequestDetail />} />
         <Route path="settings" element={<Settings />} />

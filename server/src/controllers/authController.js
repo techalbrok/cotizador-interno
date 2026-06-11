@@ -5,15 +5,18 @@ import { assertSafeUserSmtpSettings, getUserSmtpSettingsForProfile, normalizeUse
 import { getJwtSecret } from '../config/secrets.js';
 import { getEmailDeliveryErrorMessage } from '../utils/emailErrors.js';
 import { clearAuthCookie, setAuthCookie } from '../utils/authCookies.js';
+import { loginSchema, changePasswordSchema, smtpSettingsSchema } from '../schemas/authSchemas.js';
 
 export const login = async (req, res, next) => {
   try {
-    const email = String(req.body?.email ?? '').trim().toLowerCase();
-    const password = String(req.body?.password ?? '');
-
-    if (!email || !password) {
-      return res.status(401).json({ message: 'Credenciales invalidas' });
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        message: 'Payload invalido',
+        errors: parsed.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+      });
     }
+    const { email, password } = parsed.data;
 
     const user = await findUserByEmail(email);
     if (!user) {
@@ -26,7 +29,7 @@ export const login = async (req, res, next) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, rol: user.rol, delegacion_id: user.delegacion_id },
+      { id: user.id, rol: user.rol, delegacion_id: user.delegacion_id, delegacion_asignada_id: user.delegacion_asignada_id, comision_pactada: user.comision_pactada },
       getJwtSecret(),
       { expiresIn: '8h' }
     );
@@ -40,6 +43,8 @@ export const login = async (req, res, next) => {
         email: user.email,
         rol: user.rol,
         delegacion_id: user.delegacion_id,
+        delegacion_asignada_id: user.delegacion_asignada_id,
+        comision_pactada: user.comision_pactada,
         delegacion_nombre: user.delegacion_nombre,
       },
     });
@@ -72,23 +77,14 @@ export const logout = async (req, res, next) => {
 
 export const changePassword = async (req, res, next) => {
   try {
-    const { currentPassword, newPassword, confirmPassword } = req.body;
-
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      return res.status(400).json({ message: 'Debes completar la contrasena actual y la nueva contrasena dos veces' });
+    const parsed = changePasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        message: 'Payload invalido',
+        errors: parsed.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+      });
     }
-
-    if (newPassword !== confirmPassword) {
-      return res.status(400).json({ message: 'La nueva contrasena y su confirmacion no coinciden' });
-    }
-
-    if (newPassword.length < 8) {
-      return res.status(400).json({ message: 'La nueva contrasena debe tener al menos 8 caracteres' });
-    }
-
-    if (currentPassword === newPassword) {
-      return res.status(400).json({ message: 'La nueva contrasena debe ser distinta de la actual' });
-    }
+    const { currentPassword, newPassword } = parsed.data;
 
     const user = await findUserWithPasswordById(req.user.id);
     if (!user || !user.activo) {

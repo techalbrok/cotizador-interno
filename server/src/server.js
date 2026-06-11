@@ -7,6 +7,7 @@ import { syncDefaultFormSchemas } from './services/formularioSyncService.js';
 import { ensureUserSmtpSchema } from './services/userSmtpSchemaSyncService.js';
 import { validateSecurityConfiguration } from './config/secrets.js';
 import { getUploadsDirectory } from './utils/uploadStorage.js';
+import { registerEmailHandlers } from './events/handlers/emailHandler.js';
 
 dotenv.config();
 
@@ -24,6 +25,8 @@ async function startServer() {
 
   validateSecurityConfiguration();
   await ensureUserSmtpSchema();
+
+  registerEmailHandlers();
 
   if (process.env.SYNC_FORM_SCHEMAS !== 'false') {
     const syncResults = await syncDefaultFormSchemas();

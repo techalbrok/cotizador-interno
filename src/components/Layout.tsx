@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
+  ChevronsLeft,
+  ChevronsRight,
   FilePlus,
+  Inbox,
   LayoutDashboard,
   LogOut,
   Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
   Settings,
-  User,
+  User as UserIcon,
   X,
 } from "lucide-react";
 import { clsx } from "clsx";
@@ -18,6 +19,15 @@ type NavItem = {
   name: string;
   path: string;
   icon: typeof LayoutDashboard;
+};
+
+const ROLE_LABEL: Record<string, string> = {
+  operador: "Operador",
+  gestor: "Gestor",
+  admin: "Administrador",
+  superadmin: "Super admin",
+  avisador: "Avisador",
+  tramitador_central: "Tramitador central",
 };
 
 export default function Layout() {
@@ -35,14 +45,23 @@ export default function Layout() {
     localStorage.setItem("sidebarCollapsed", sidebarCollapsed.toString());
   }, [sidebarCollapsed]);
 
-  const navItems: NavItem[] = useMemo(
-    () => [
-      { name: "Dashboard", path: "/", icon: LayoutDashboard },
-      ...(user?.rol === "operador" ? [{ name: "Nueva solicitud", path: "/new", icon: FilePlus }] : []),
-      { name: "Configuracion", path: "/settings", icon: Settings },
-    ],
-    [user?.rol]
-  );
+  const isAvisador = user?.rol === "avisador";
+  const isOperador = user?.rol === "operador";
+  const isPrivileged = user?.rol === "admin" || user?.rol === "superadmin";
+
+  const navItems: NavItem[] = useMemo(() => {
+    if (isAvisador) {
+      return [
+        { name: "Mis avisos", path: "/avisador", icon: Inbox },
+        { name: "Nuevo aviso", path: "/new", icon: FilePlus },
+      ];
+    }
+    return [
+      { name: "Resumen", path: "/", icon: LayoutDashboard },
+      ...(isOperador ? [{ name: "Nueva solicitud", path: "/new", icon: FilePlus }] : []),
+      ...(isPrivileged ? [{ name: "Configuracion", path: "/settings", icon: Settings }] : []),
+    ];
+  }, [user?.rol, isAvisador, isOperador, isPrivileged]);
 
   const handleLogout = async () => {
     setAccountMenuOpen(false);
@@ -62,146 +81,272 @@ export default function Layout() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [accountMenuOpen]);
 
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  const userInitials = useMemo(() => {
+    const nombre = user?.nombre || "U";
+    return nombre
+      .split(/\s+/)
+      .map((part) => part.charAt(0))
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  }, [user?.nombre]);
+
   const renderSidebar = (isCollapsed: boolean) => (
-    <aside className="flex h-full flex-col rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,hsl(229_38%_12%),hsl(222_42%_10%)_48%,hsl(222_42%_9%))] px-3 py-4 text-white shadow-[var(--shadow-sidebar)] transition-all duration-300">
-      <div className={clsx("flex items-center gap-3 px-3 pb-5 pt-2", isCollapsed ? "justify-center" : "justify-between")}>
+    <aside
+      className={clsx(
+        "flex h-full flex-col rounded-xl border border-white/[0.06] bg-[hsl(222_42%_8%)] text-white shadow-[0_18px_44px_-24px_rgb(8_13,26_/_0.55)] transition-all duration-200",
+      )}
+    >
+      <div
+        className={clsx(
+          "flex items-center gap-2.5 border-b border-white/[0.06] px-3 py-3",
+          isCollapsed ? "justify-center" : "justify-between",
+        )}
+      >
         {!isCollapsed && (
-          <Link to="/" onClick={() => setMobileMenuOpen(false)} className="inline-flex items-center">
-            <img
-              src="/logos/logo_albrok_blanco_transp.png"
-              alt="Albroksa"
-              className="h-auto w-[150px] max-w-full object-contain"
-            />
+          <Link
+            to="/"
+            onClick={() => setMobileMenuOpen(false)}
+            className="inline-flex items-center gap-2 min-w-0"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[hsl(350_78%_50%)] text-[0.7rem] font-bold text-white shadow-[0_4px_10px_-2px_hsl(350_78%_50%_/_0.45)]">
+              A
+            </span>
+            <span className="flex flex-col min-w-0">
+              <span className="text-[0.78rem] font-semibold tracking-[-0.01em] text-white leading-none">
+                Albroksa
+              </span>
+              <span className="mt-0.5 text-[0.65rem] font-medium uppercase tracking-[0.08em] text-white/45">
+                Cotizador
+              </span>
+            </span>
           </Link>
         )}
         <button
           type="button"
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className={clsx(
-            "hidden h-10 w-10 items-center justify-center rounded-2xl text-[hsl(221_20%_72%)] transition hover:bg-white/6 hover:text-white lg:inline-flex shrink-0",
-            isCollapsed && "mx-auto"
-          )}
+          aria-label={isCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+          className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/55 transition hover:bg-white/[0.06] hover:text-white lg:inline-flex"
         >
-          {isCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+          {isCollapsed ? <ChevronsRight className="h-3.5 w-3.5" /> : <ChevronsLeft className="h-3.5 w-3.5" />}
         </button>
         <button
           type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-2xl text-[hsl(221_20%_72%)] transition hover:bg-white/6 hover:text-white lg:hidden shrink-0"
+          aria-label="Cerrar menu"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white/55 transition hover:bg-white/[0.06] hover:text-white lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         >
-          <X className="h-5 w-5" />
+          <X className="h-3.5 w-3.5" />
         </button>
       </div>
 
-      <nav className="mt-2 flex-1 space-y-1.5 px-1">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path || (item.path !== "/" && location.pathname.startsWith(item.path));
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              onClick={() => setMobileMenuOpen(false)}
-              className={clsx(
-                "group flex items-center rounded-2xl py-3 text-sm font-semibold transition-all duration-300",
-                isCollapsed ? "justify-center px-0" : "gap-3 px-4",
-                isActive
-                  ? "bg-[linear-gradient(135deg,hsl(350_65%_24%),hsl(350_60%_18%))] text-white shadow-[0_18px_30px_-24px_hsl(350_78%_50%_/_0.95)]"
-                  : "text-[hsl(221_20%_72%)] hover:bg-white/6 hover:text-white"
-              )}
-              title={isCollapsed ? item.name : undefined}
-            >
-              <item.icon className={clsx("h-[1.15rem] w-[1.15rem] shrink-0", isActive ? "text-[hsl(350_88%_72%)]" : "text-current")} />
-              {!isCollapsed && <span>{item.name}</span>}
-            </Link>
-          );
-        })}
+      <div className="px-2 pt-2">
+        <p
+          className={clsx(
+            "px-2.5 pb-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-white/35",
+            isCollapsed && "sr-only",
+          )}
+        >
+          Navegacion
+        </p>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto px-2 pb-2">
+        <ul className="space-y-0.5">
+          {navItems.map((item) => {
+            const isActive =
+              location.pathname === item.path ||
+              (item.path !== "/" && location.pathname.startsWith(item.path));
+            return (
+              <li key={item.path}>
+                <Link
+                  to={item.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={clsx(
+                    "group relative flex items-center rounded-md py-1.5 text-[0.82rem] font-medium transition-colors",
+                    isCollapsed ? "justify-center px-0" : "gap-2.5 pl-2.5 pr-2",
+                    isActive
+                      ? "bg-white/[0.06] text-white"
+                      : "text-white/65 hover:bg-white/[0.04] hover:text-white",
+                  )}
+                  title={isCollapsed ? item.name : undefined}
+                >
+                  {isActive && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-[hsl(350_78%_50%)] shadow-[0_0_8px_hsl(350_78%_50%_/_0.6)]"
+                    />
+                  )}
+                  <item.icon
+                    className={clsx(
+                      "h-[1.05rem] w-[1.05rem] shrink-0 transition-colors",
+                      isActive ? "text-[hsl(350_88%_72%)]" : "text-current",
+                    )}
+                  />
+                  {!isCollapsed && <span className="truncate">{item.name}</span>}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
-      {!isCollapsed && (
-        <div className="px-3 pb-2 pt-6 text-center text-[0.72rem] leading-6 text-[hsl(221_20%_58%)] overflow-hidden whitespace-nowrap">
-          <p>Gestion de solicitudes</p>
-          <p>v1 2026 Albroksa</p>
-          <p>Correduria de Seguros</p>
-        </div>
-      )}
+      <div className="border-t border-white/[0.06] px-2 py-2">
+        {isCollapsed ? (
+          <div className="flex justify-center">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-[hsl(226_46%_40%)] to-[hsl(232_46%_52%)] text-[0.7rem] font-semibold text-white">
+              {userInitials}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-md bg-white/[0.04] px-2.5 py-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[hsl(226_46%_40%)] to-[hsl(232_46%_52%)] text-[0.7rem] font-semibold text-white">
+                {userInitials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[0.78rem] font-semibold leading-none text-white">
+                  {user?.nombre || "Usuario"}
+                </p>
+                <p className="mt-1 truncate text-[0.65rem] font-medium uppercase tracking-[0.05em] text-white/45">
+                  {ROLE_LABEL[user?.rol || ""] || user?.rol}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        <p
+          className={clsx(
+            "mt-2 text-center text-[0.6rem] leading-4 text-white/30",
+            isCollapsed && "sr-only",
+          )}
+        >
+          v1 2026 Albroksa
+        </p>
+      </div>
     </aside>
   );
 
   return (
-    <div className="h-screen overflow-hidden p-[3px]">
+    <div className="h-screen overflow-hidden bg-[hsl(220_22%_97%)] p-[3px]">
       <div className="flex h-full overflow-hidden gap-[3px]">
-        <div className={clsx(
-          "hidden h-full shrink-0 transition-all duration-300 lg:block",
-          sidebarCollapsed ? "w-[88px]" : "w-[300px]"
-        )}>
+        <div
+          className={clsx(
+            "hidden h-full shrink-0 transition-all duration-200 lg:block",
+            sidebarCollapsed ? "w-[60px]" : "w-[232px]",
+          )}
+        >
           {renderSidebar(sidebarCollapsed)}
         </div>
 
         {mobileMenuOpen && (
           <>
-            <div className="fixed inset-0 z-40 bg-[hsl(222_38%_12%_/_0.45)] backdrop-blur-sm lg:hidden" onClick={() => setMobileMenuOpen(false)} />
-            <div className="fixed inset-y-[3px] left-[3px] z-50 w-[min(90vw,300px)] lg:hidden">{renderSidebar(false)}</div>
+            <div
+              className="fixed inset-0 z-40 bg-[hsl(222_38%_12%_/_0.45)] backdrop-blur-sm lg:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <div className="fixed inset-y-[3px] left-[3px] z-50 w-[min(90vw,232px)] lg:hidden">
+              {renderSidebar(false)}
+            </div>
           </>
         )}
 
         <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-[3px]">
-          <header className="surface-glass relative z-50 flex min-h-20 items-center justify-between gap-4 overflow-visible rounded-[1.75rem] px-4 py-3 sm:px-6">
-            <div className="flex items-center gap-3">
+          <header className="flex h-12 items-center justify-between gap-3 rounded-xl border border-[hsl(220_14%_88%_/_0.85)] bg-white px-3 shadow-[0_1px_2px_hsl(222_38%_12%_/_0.04)]">
+            <div className="flex items-center gap-2.5 min-w-0">
               <button
                 type="button"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[hsl(220_16%_86%_/_0.8)] bg-white/70 text-[hsl(222_38%_12%)] shadow-[0_14px_28px_-24px_hsl(222_38%_12%_/_0.55)] transition hover:bg-white lg:hidden"
+                aria-label="Abrir menu"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[hsl(220_14%_88%_/_0.85)] bg-white text-[hsl(222_38%_12%)] transition hover:bg-[hsl(220_22%_97%)] lg:hidden"
                 onClick={() => setMobileMenuOpen(true)}
               >
-                <Menu className="h-5 w-5" />
+                <Menu className="h-4 w-4" />
               </button>
-              <div className="hidden sm:block">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[hsl(219_18%_52%)]">Albroksa Workspace</p>
-                <p className="mt-1 text-sm text-[hsl(219_18%_52%)]">Canal interno de cotizacion y colaboracion.</p>
+              <div className="hidden sm:flex sm:items-center sm:gap-2 min-w-0">
+                <span className="text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_14%_46%)]">
+                  Workspace
+                </span>
+                <span className="text-[hsl(220_14%_88%)]">/</span>
+                <span className="truncate text-[0.82rem] font-semibold text-[hsl(222_38%_12%)]">
+                  {navItems.find((item) =>
+                    location.pathname === item.path ||
+                    (item.path !== "/" && location.pathname.startsWith(item.path)),
+                  )?.name || "Albroksa"}
+                </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2">
               <div className="relative" ref={accountMenuRef}>
                 <button
                   type="button"
                   onClick={() => setAccountMenuOpen((value) => !value)}
-                  className="inline-flex items-center gap-2 rounded-full border border-[hsl(220_16%_86%_/_0.8)] bg-white/75 py-1 pl-1 pr-2.5 transition hover:bg-white"
+                  className="inline-flex items-center gap-2 rounded-md border border-[hsl(220_14%_88%_/_0.85)] bg-white py-1 pl-1 pr-2 transition hover:bg-[hsl(220_22%_97%)]"
                 >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(219_18%_52%_/_0.12)] text-sm font-bold text-[hsl(222_38%_12%)]">
-                    {user?.nombre?.charAt(0).toUpperCase() || "A"}
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-[hsl(226_46%_40%)] to-[hsl(232_46%_52%)] text-[0.7rem] font-semibold text-white">
+                    {userInitials}
                   </div>
                   <div className="hidden text-left sm:block">
-                    <p className="text-[0.95rem] font-semibold leading-5 text-[hsl(222_38%_12%)]">{user?.nombre || "Usuario"}</p>
-                    <p className="text-xs capitalize text-[hsl(219_18%_52%)]">{user?.rol || "operador"}</p>
+                    <p className="text-[0.78rem] font-semibold leading-none text-[hsl(222_38%_12%)]">
+                      {user?.nombre || "Usuario"}
+                    </p>
+                    <p className="mt-1 text-[0.65rem] font-medium uppercase tracking-[0.05em] text-[hsl(219_14%_46%)]">
+                      {ROLE_LABEL[user?.rol || ""] || user?.rol}
+                    </p>
                   </div>
                 </button>
 
                 {accountMenuOpen && (
-                  <div className="absolute right-0 top-[calc(100%+0.45rem)] z-[80] w-[252px] overflow-hidden rounded-[1.05rem] border border-[hsl(220_16%_86%_/_0.85)] bg-white shadow-[0_20px_40px_-24px_rgba(10,16,34,0.42)]">
-                    <div className="px-4 py-3">
-                      <p className="text-[1.25rem] font-semibold tracking-[-0.02em] text-[hsl(222_38%_12%)]">{user?.nombre || "Usuario"}</p>
-                      <p className="mt-1 truncate text-sm text-[hsl(219_18%_52%)]">{user?.email || ""}</p>
+                  <div className="absolute right-0 top-[calc(100%+0.4rem)] z-[80] w-[260px] overflow-hidden rounded-lg border border-[hsl(220_14%_88%_/_0.85)] bg-white shadow-[0_18px_36px_-18px_rgba(10,16,34,0.32)]">
+                    <div className="flex items-center gap-2.5 border-b border-[hsl(220_14%_88%_/_0.7)] px-3 py-2.5">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[hsl(226_46%_40%)] to-[hsl(232_46%_52%)] text-[0.78rem] font-semibold text-white">
+                        {userInitials}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-[0.85rem] font-semibold text-[hsl(222_38%_12%)]">
+                          {user?.nombre || "Usuario"}
+                        </p>
+                        <p className="truncate text-[0.72rem] text-[hsl(219_14%_46%)]">
+                          {user?.email}
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="h-px bg-[hsl(220_16%_86%_/_0.8)]" />
+                    <div className="py-1">
+                      <Link
+                        to="/settings"
+                        onClick={() => setAccountMenuOpen(false)}
+                        className="flex items-center gap-2 px-3 py-1.5 text-[0.82rem] font-medium text-[hsl(222_38%_12%)] transition hover:bg-[hsl(220_22%_97%)]"
+                      >
+                        <UserIcon className="h-3.5 w-3.5 text-[hsl(219_14%_46%)]" />
+                        Mi perfil
+                      </Link>
 
-                    <Link
-                      to="/settings"
-                      onClick={() => setAccountMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 text-base font-medium text-[hsl(222_38%_12%)] transition hover:bg-[hsl(220_30%_97%)]"
-                    >
-                      <User className="h-4.5 w-4.5" />
-                      Mi perfil
-                    </Link>
+                      {!isAvisador && (
+                        <Link
+                          to="/settings"
+                          onClick={() => setAccountMenuOpen(false)}
+                          className="flex items-center gap-2 px-3 py-1.5 text-[0.82rem] font-medium text-[hsl(222_38%_12%)] transition hover:bg-[hsl(220_22%_97%)]"
+                        >
+                          <Settings className="h-3.5 w-3.5 text-[hsl(219_14%_46%)]" />
+                          Configuracion
+                        </Link>
+                      )}
+                    </div>
 
-                    <div className="h-px bg-[hsl(220_16%_86%_/_0.8)]" />
+                    <div className="h-px bg-[hsl(220_14%_88%_/_0.7)]" />
 
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-base font-medium text-[hsl(353_72%_46%)] transition hover:bg-[hsl(353_83%_60%_/_0.08)]"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-[0.82rem] font-medium text-[hsl(353_72%_44%)] transition hover:bg-[hsl(353_78%_52%_/_0.08)]"
                     >
-                      <LogOut className="h-4.5 w-4.5" />
+                      <LogOut className="h-3.5 w-3.5" />
                       Cerrar sesion
                     </button>
                   </div>

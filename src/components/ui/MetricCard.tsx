@@ -7,7 +7,7 @@ type MetricCardProps = {
   key?: Key;
   label: string;
   value: string | number;
-  description: string;
+  description?: string;
   icon: LucideIcon;
   tone?: Tone;
   className?: string;
@@ -23,19 +23,23 @@ export default function MetricCard({
 }: MetricCardProps) {
   return (
     <SurfaceCard className={`metric-card animate-fade-in ${className || ""}`}>
-      <div className="relative z-10 flex h-full flex-col justify-between gap-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-[hsl(219_18%_52%)]">{label}</p>
-            <p className="mt-3 text-[2rem] font-extrabold leading-none tracking-[-0.045em] text-[hsl(222_38%_12%)]">
+      <div className="relative z-10 flex h-full items-center gap-3">
+        <span className={`icon-badge ${toneClasses[tone].ring}`} data-tone={tone === "danger" ? "primary" : tone}>
+          <Icon className="h-4 w-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.04em] text-[hsl(219_14%_46%)] leading-tight truncate">
+            {label}
+          </p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <p className="text-[1.5rem] font-semibold leading-none tracking-[-0.025em] text-[hsl(222_38%_12%)] tabular-nums">
               {value}
             </p>
+            {description && (
+              <p className="text-[0.75rem] text-[hsl(219_14%_46%)] truncate">{description}</p>
+            )}
           </div>
-          <span className={`icon-badge ${toneClasses[tone].ring}`} data-tone={tone === "danger" ? "primary" : tone}>
-            <Icon className="h-5 w-5" />
-          </span>
         </div>
-        <p className="text-sm text-[hsl(219_18%_52%)]">{description}</p>
       </div>
     </SurfaceCard>
   );

@@ -15,13 +15,13 @@ export default function StatusBadge({ status, size = "md", className }: StatusBa
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-2 rounded-full border font-semibold",
-        size === "sm" ? "px-2.5 py-1 text-[11px]" : "px-3 py-1.5 text-xs",
+        "inline-flex items-center gap-1.5 rounded-full border font-medium whitespace-nowrap",
+        size === "sm" ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-0.5 text-[11px]",
         tone.badge,
         className
       )}
     >
-      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70 shrink-0" />
       {meta.label}
     </span>
   );

@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { AUTH_SESSION_MARKER } from '../lib/api';
 
-export type Role = "operador" | "gestor" | "admin";
+export type Role = "operador" | "gestor" | "admin" | "superadmin" | "avisador" | "tramitador_central";
 
 export interface User {
   id: string;
@@ -9,6 +9,8 @@ export interface User {
   email: string;
   rol: Role;
   delegacion_id: number | null;
+  delegacion_asignada_id?: number | null;
+  comision_pactada?: number | null;
   delegacion_nombre?: string;
 }
 

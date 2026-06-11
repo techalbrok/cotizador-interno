@@ -45,6 +45,21 @@ Sistema interno para la gestión y generación de cotizaciones de seguros de Alb
 - `/src`: Código fuente del frontend (React + Vite).
 - `/server`: Lógica del backend (Node.js + Express).
 - `/files`: Recursos y plantillas adicionales.
+- `/migrations`: Scripts SQL de evolución del esquema. Se ejecutan manualmente.
+
+## Migraciones de Base de Datos
+
+Cuando se añaden columnas o se modifican enums de forma compatible, se publica un script en `migrations/` con un nombre incremental (`001_quickwins_phase0.sql`, etc.). Cada script es **idempotente**: re-ejecutarlo no rompe nada.
+
+### Aplicar una migración
+
+```bash
+mysql -u <usuario> -p < migrations/001_quickwins_phase0.sql
+```
+
+### Auto-curación al arrancar
+
+El servidor ejecuta `ensureUserSmtpSchema()` en el arranque, que añade las columnas y FKs faltantes detectadas contra `INFORMATION_SCHEMA`. Esto convierte el sistema en **auto-curativo** para entornos donde la migración manual se haya olvidado: el primer arranque las aplicará (excepto los `MODIFY COLUMN` del ENUM, que sí requieren el script manual).
 
 ---
 

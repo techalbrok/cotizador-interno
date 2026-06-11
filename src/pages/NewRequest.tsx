@@ -211,7 +211,7 @@ export default function NewRequest() {
   const renderField = (field: FormField) => {
     if (field.type === "info") {
       return (
-        <div className="col-span-full rounded-[1.05rem] border border-[hsl(33_90%_55%_/_0.24)] bg-[hsl(33_90%_55%_/_0.08)] px-4 py-3 text-sm text-[hsl(28_88%_38%)]">
+        <div className="col-span-full rounded-md border border-[hsl(33_90%_50%_/_0.22)] bg-[hsl(33_90%_50%_/_0.08)] px-3 py-2 text-[0.8rem] text-[hsl(28_88%_36%)]">
           <p className="font-semibold">{field.label}</p>
           {field.helpText && <p className="mt-1 text-xs leading-5 opacity-90">{field.helpText}</p>}
         </div>
@@ -252,7 +252,7 @@ export default function NewRequest() {
             ))}
           </select>
         ) : field.type === "checkboxGroup" ? (
-          <div className="grid gap-2 rounded-[1rem] border border-[hsl(220_16%_86%_/_0.9)] bg-white/80 p-4">
+          <div className="grid gap-2 rounded-lg border border-[hsl(220_14%_88%_/_0.85)] bg-white p-3">
             {field.options?.map((option) => (
               <label key={option.value} className="flex items-center gap-3 text-sm text-[hsl(222_38%_12%)]">
                 <input
@@ -266,7 +266,7 @@ export default function NewRequest() {
             ))}
           </div>
         ) : field.type === "checkbox" ? (
-          <label className="flex items-start gap-3 rounded-[1rem] border border-[hsl(220_16%_86%_/_0.9)] bg-white/80 p-4 text-sm text-[hsl(222_38%_12%)]">
+          <label className="flex items-start gap-3 rounded-lg border border-[hsl(220_14%_88%_/_0.85)] bg-white p-3 text-[0.85rem] text-[hsl(222_38%_12%)]">
             <input
               id={field.name}
               type="checkbox"
@@ -284,7 +284,7 @@ export default function NewRequest() {
             value={String(formData[field.name] || "")}
             onChange={handleInputChange}
             rows={4}
-            className="form-input min-h-[120px] resize-y"
+                    className="form-input min-h-[88px] resize-y"
           />
         ) : (
           <input
@@ -310,7 +310,7 @@ export default function NewRequest() {
   }
 
   return (
-    <div className="page-shell space-y-6 pb-6">
+    <div className="page-shell space-y-4 pb-4">
       <PageHeader
         title={editId ? "Editar solicitud" : "Nueva solicitud"}
         subtitle="Crea una solicitud interna con el mismo lenguaje visual y operativo del resto del ecosistema Albroksa."
@@ -334,81 +334,117 @@ export default function NewRequest() {
         </SurfaceCard>
       )}
 
-      <SurfaceCard className="overflow-hidden" padding="lg">
-        <div className="relative z-10 grid gap-3 md:grid-cols-4">
-          {stepLabels.map((label, index) => {
-            const current = index + 1;
-            const active = step === current;
-            const completed = step > current;
+      <div className="relative grid gap-2 md:grid-cols-4">
+        {stepLabels.map((label, index) => {
+          const current = index + 1;
+          const active = step === current;
+          const completed = step > current;
+          const isLast = index === stepLabels.length - 1;
 
-            return (
+          return (
+            <div
+              key={label}
+              className={clsx(
+                "flex items-center gap-2.5 rounded-md border px-3 py-2 transition",
+                active
+                  ? "border-[hsl(350_78%_50%_/_0.35)] bg-[hsl(350_78%_50%_/_0.07)]"
+                  : completed
+                    ? "border-[hsl(152_58%_38%_/_0.22)] bg-white"
+                    : "border-[hsl(220_14%_88%_/_0.85)] bg-white",
+              )}
+            >
               <div
-                key={label}
                 className={clsx(
-                  "rounded-[1.25rem] border px-4 py-4 transition",
-                  active ? "border-[hsl(350_78%_50%_/_0.28)] bg-[hsl(350_78%_50%_/_0.1)] shadow-[var(--shadow-glow)]" : "border-[hsl(220_16%_86%_/_0.82)] bg-white/65"
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[0.72rem] font-semibold transition",
+                  completed
+                    ? "bg-[hsl(152_58%_38%)] text-white"
+                    : active
+                      ? "bg-[hsl(350_78%_50%)] text-white"
+                      : "border border-[hsl(220_14%_88%)] bg-white text-[hsl(219_14%_46%)]",
                 )}
               >
-                <div className="flex items-center gap-3">
-                  <div className={clsx("flex h-10 w-10 items-center justify-center rounded-[1rem] border text-sm font-extrabold", completed || active ? "border-transparent bg-[linear-gradient(135deg,hsl(350_78%_50%),hsl(358_88%_58%))] text-white" : "border-[hsl(220_16%_86%)] bg-white text-[hsl(219_18%_52%)]")}>
-                    {completed ? <CheckCircle2 className="h-4 w-4" /> : current}
-                  </div>
-                  <div>
-                    <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_18%_52%)]">Paso {current}</p>
-                    <p className="text-sm font-semibold text-[hsl(222_38%_12%)]">{label}</p>
-                  </div>
-                </div>
+                {completed ? <CheckCircle2 className="h-3.5 w-3.5" /> : current}
               </div>
-            );
-          })}
-        </div>
-      </SurfaceCard>
+              <div className="min-w-0">
+                <p className="text-[0.62rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_14%_46%)] leading-none">
+                  Paso {current}
+                </p>
+                <p
+                  className={clsx(
+                    "mt-0.5 truncate text-[0.82rem] font-semibold leading-tight",
+                    active ? "text-[hsl(350_78%_44%)]" : "text-[hsl(222_38%_12%)]",
+                  )}
+                >
+                  {label}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {step === 1 && (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {(Object.entries(insuranceTypeMeta) as Array<[InsuranceType, typeof insuranceTypeMeta[InsuranceType]]>).map(([insuranceType, meta]) => {
-            const Icon = meta.icon;
-            return (
-              <button key={insuranceType} type="button" onClick={() => handleTypeSelect(insuranceType)} className="text-left">
-                <SurfaceCard className="h-full transition duration-300 hover:-translate-y-0.5 hover:shadow-[var(--shadow-glow)]">
-                  <div className="relative z-10 flex h-full flex-col gap-5">
-                    <span className="icon-badge h-14 w-14 rounded-[1.2rem]" data-tone={meta.tone}>
-                      <Icon className="h-6 w-6" />
-                    </span>
-                    <div>
-                      <p className="text-xl font-extrabold tracking-[-0.03em] text-[hsl(222_38%_12%)]">{insuranceType}</p>
-                      <p className="mt-2 text-sm leading-6 text-[hsl(219_18%_52%)]">{meta.description}</p>
+        <div>
+          <p className="mb-3 text-[0.78rem] font-semibold uppercase tracking-[0.04em] text-[hsl(219_14%_46%)]">
+            Selecciona el tipo de seguro
+          </p>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {(Object.entries(insuranceTypeMeta) as Array<[InsuranceType, typeof insuranceTypeMeta[InsuranceType]]>).map(([insuranceType, meta]) => {
+              const Icon = meta.icon;
+              return (
+                <button
+                  key={insuranceType}
+                  type="button"
+                  onClick={() => handleTypeSelect(insuranceType)}
+                  className="group text-left"
+                >
+                  <SurfaceCard className="relative h-full overflow-hidden transition hover:-translate-y-0.5 hover:border-[hsl(350_78%_50%_/_0.45)] hover:shadow-[0_8px_20px_-12px_hsl(350_78%_50%_/_0.45)]">
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-[hsl(350_78%_50%)] to-transparent opacity-0 transition group-hover:opacity-100"
+                    />
+                    <div className="relative z-10 flex h-full flex-col gap-3">
+                      <div className="flex items-start justify-between">
+                        <span className="icon-badge h-9 w-9 rounded-md" data-tone={meta.tone}>
+                          <Icon className="h-4.5 w-4.5" />
+                        </span>
+                        <ArrowRight className="h-3.5 w-3.5 text-[hsl(219_14%_46%)] transition group-hover:translate-x-0.5 group-hover:text-[hsl(350_78%_50%)]" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[1.05rem] font-semibold tracking-[-0.015em] text-[hsl(222_38%_12%)] leading-tight">
+                          {insuranceType}
+                        </p>
+                        <p className="mt-1.5 text-[0.78rem] leading-snug text-[hsl(219_14%_46%)]">
+                          {meta.description}
+                        </p>
+                      </div>
                     </div>
-                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-[hsl(350_78%_50%)]">
-                      Continuar
-                      <ArrowRight className="h-4 w-4" />
-                    </span>
-                  </div>
-                </SurfaceCard>
-              </button>
-            );
-          })}
+                  </SurfaceCard>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
       {step === 2 && type && (
-        <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+        <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
           <SectionCard title="Carga de poliza actual" description="Sube una poliza o una imagen para extraer datos y acelerar la confeccion del expediente." icon={UploadCloud}>
-            <label htmlFor="policy-upload" className="flex min-h-[320px] cursor-pointer flex-col items-center justify-center rounded-[1.35rem] border border-dashed border-[hsl(220_16%_86%)] bg-white/70 px-6 py-10 text-center transition hover:border-[hsl(350_78%_50%_/_0.38)] hover:bg-[hsl(350_78%_50%_/_0.05)]">
+            <label htmlFor="policy-upload" className="flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[hsl(220_14%_88%)] bg-white px-4 py-6 text-center transition hover:border-[hsl(350_78%_50%_/_0.38)] hover:bg-[hsl(350_78%_50%_/_0.05)]">
               {isExtracting ? (
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <Loader2 className="mx-auto h-10 w-10 animate-spin text-[hsl(350_78%_50%)]" />
                   <p className="text-base font-semibold text-[hsl(222_38%_12%)]">Extrayendo datos...</p>
                   <p className="text-sm text-[hsl(219_18%_52%)]">La IA esta leyendo la poliza y preparando el formulario.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <span className="icon-badge mx-auto h-16 w-16 rounded-[1.3rem]"><UploadCloud className="h-7 w-7" /></span>
+                <div className="space-y-2">
+                  <span className="icon-badge mx-auto h-10 w-10 rounded-md"><UploadCloud className="h-5 w-5" /></span>
                   <div>
                     <p className="text-lg font-semibold tracking-[-0.02em] text-[hsl(222_38%_12%)]">Subir poliza actual</p>
                     <p className="mt-2 text-sm leading-6 text-[hsl(219_18%_52%)]">PDF o imagen. Arrastra el archivo o haz clic para seleccionar.</p>
                   </div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-[hsl(152_58%_42%_/_0.18)] bg-[hsl(152_58%_42%_/_0.1)] px-4 py-2 text-sm font-semibold text-[hsl(152_58%_30%)]">
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-[hsl(152_58%_38%_/_0.18)] bg-[hsl(152_58%_38%_/_0.1)] px-3 py-1 text-[0.78rem] font-medium text-[hsl(152_58%_30%)]">
                     <Sparkles className="h-4 w-4" />
                     Extraccion automatica
                   </div>
@@ -439,120 +475,142 @@ export default function NewRequest() {
       )}
 
       {step === 3 && schema && (
-        <div className="space-y-6">
+                <div className="space-y-2.5">
           {groupedFields.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-[hsl(220_14%_88%_/_0.85)] bg-white p-1">
               {groupedFields.map((section, idx) => (
                 <button
                   key={section.title}
                   type="button"
                   onClick={() => setCurrentSectionIndex(idx)}
                   className={clsx(
-                    "rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors",
+                    "rounded-md px-2.5 py-1 text-[0.78rem] font-semibold transition-colors",
                     currentSectionIndex === idx
-                      ? "border-[hsl(350_78%_50%_/_0.38)] bg-[hsl(350_78%_50%)] text-white shadow-[var(--shadow-glow)]"
-                      : "border-[hsl(220_16%_86%_/_0.82)] bg-white/60 text-[hsl(219_18%_52%)] hover:bg-white"
+                      ? "bg-[hsl(350_78%_50%)] text-white"
+                      : "text-[hsl(219_14%_46%)] hover:bg-[hsl(220_22%_97%)] hover:text-[hsl(222_38%_12%)]"
                   )}
                 >
-                  {idx + 1}. {section.title}
+                  <span className="opacity-60">{idx + 1}.</span> {section.title}
                 </button>
               ))}
             </div>
           )}
 
-          <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
-            {/* Left Column: Summary */}
-            <div className="space-y-6">
-              <SurfaceCard padding="lg">
-                <div className="relative z-10 space-y-4">
-                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[hsl(350_78%_50%)]">Resumen</p>
-                  <div className="space-y-3">
+          <div className="grid gap-4 xl:grid-cols-[280px_1fr]">
+            {/* Left Column: Summary sticky */}
+            <div className="space-y-3 xl:sticky xl:top-2 xl:self-start">
+              <SurfaceCard padding="md">
+                <div className="relative z-10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-[hsl(350_78%_50%)]">
+                      Resumen
+                    </p>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[hsl(220_22%_97%)] px-1.5 py-0.5 text-[0.65rem] font-semibold text-[hsl(219_14%_46%)]">
+                      {Object.values(formData).filter(Boolean).length} campos
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_18%_52%)]">Ramo</p>
-                      <p className="mt-1 text-base font-semibold text-[hsl(222_38%_12%)]">{type}</p>
+                      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.06em] text-[hsl(219_14%_46%)]">Ramo</p>
+                      <p className="mt-0.5 truncate text-[0.82rem] font-semibold text-[hsl(222_38%_12%)]">{type}</p>
                     </div>
                     <div>
-                      <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_18%_52%)]">Cliente</p>
-                      <p className="mt-1 text-base font-semibold text-[hsl(222_38%_12%)]">{clientName || "Pendiente"}</p>
-                    </div>
-                    <div>
-                      <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_18%_52%)]">Campos informados</p>
-                      <p className="mt-1 text-base font-semibold text-[hsl(222_38%_12%)]">{Object.values(formData).filter(Boolean).length}</p>
+                      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.06em] text-[hsl(219_14%_46%)]">Cliente</p>
+                      <p className="mt-0.5 truncate text-[0.82rem] font-semibold text-[hsl(222_38%_12%)]">{clientName || "Pendiente"}</p>
                     </div>
                   </div>
                 </div>
               </SurfaceCard>
 
-              <SurfaceCard padding="lg">
-                <div className="relative z-10 space-y-3">
-                  <p className="text-base font-semibold tracking-[-0.02em] text-[hsl(222_38%_12%)]">Checklist de envio</p>
-                  <ul className="space-y-2 text-sm text-[hsl(219_18%_52%)]">
-                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[hsl(152_58%_42%)]" /> Identificacion del cliente cumplimentada.</li>
-                    <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[hsl(152_58%_42%)]" /> Riesgo documentado con informacion suficiente.</li>
-                    <li className="flex items-center gap-2"><Paperclip className="h-4 w-4 text-[hsl(350_78%_50%)]" /> Los adjuntos se incorporan en el siguiente paso.</li>
+              <SurfaceCard padding="md">
+                <div className="relative z-10 space-y-2.5">
+                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-[hsl(219_14%_46%)]">
+                    Checklist de envio
+                  </p>
+                  <ul className="space-y-1.5 text-[0.78rem] text-[hsl(222_38%_12%)]">
+                    <li className="flex items-start gap-1.5">
+                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[hsl(152_58%_38%)]" />
+                      <span className="leading-snug">Identificacion del cliente cumplimentada.</span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[hsl(152_58%_38%)]" />
+                      <span className="leading-snug">Riesgo documentado con informacion suficiente.</span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <Paperclip className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[hsl(219_14%_46%)]" />
+                      <span className="leading-snug text-[hsl(219_14%_46%)]">Los adjuntos se incorporan en el siguiente paso.</span>
+                    </li>
                   </ul>
                 </div>
               </SurfaceCard>
             </div>
 
             {/* Right Column: Form */}
-            <div className="space-y-6">
+            <div className="space-y-3">
               {currentSectionIndex === 0 && (
-                <SectionCard title={editId ? "Edicion del borrador" : schema.title} description="Completa la informacion tecnica y revisa los datos clave antes de enviar." icon={FileText}>
-                <div className="grid gap-5">
-                  <div>
-                    <label htmlFor="clientName" className="form-label">Nombre del cliente / tomador *</label>
-                    <input id="clientName" type="text" value={clientName} onChange={(event) => setClientName(event.target.value)} className="form-input" placeholder="Nombre del cliente" required />
+                <SectionCard
+                  title={editId ? "Edicion del borrador" : schema.title}
+                  description="Completa la informacion tecnica y revisa los datos clave antes de enviar."
+                  icon={FileText}
+                >
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div>
+                      <label htmlFor="clientName" className="form-label">Nombre del cliente / tomador *</label>
+                      <input id="clientName" type="text" value={clientName} onChange={(event) => setClientName(event.target.value)} className="form-input" placeholder="Nombre del cliente" required />
+                    </div>
+                    <div>
+                      <label htmlFor="observaciones" className="form-label">Observaciones internas</label>
+                      <textarea id="observaciones" value={observaciones} onChange={(event) => setObservaciones(event.target.value)} className="form-input min-h-[34px] resize-y" placeholder="Notas internas para el equipo de gestion." />
+                    </div>
                   </div>
-                  <div>
-                    <label htmlFor="observaciones" className="form-label">Observaciones internas</label>
-                    <textarea id="observaciones" value={observaciones} onChange={(event) => setObservaciones(event.target.value)} className="form-input min-h-[110px] resize-y" placeholder="Notas internas para el equipo de gestion." />
-                  </div>
-                </div>
-              </SectionCard>
-            )}
+                </SectionCard>
+              )}
 
-            {groupedFields[currentSectionIndex] && (
-              <FormSection key={groupedFields[currentSectionIndex].title} title={groupedFields[currentSectionIndex].title} description="Rellena con el mayor nivel de detalle posible para agilizar la cotizacion.">
-                {type === "Auto" && groupedFields[currentSectionIndex].title === "Propietario" && (
-                  <div className="col-span-full mb-1">
-                    <AppButton type="button" variant="secondary" onClick={() => handleCopyData("tomador", "propietario")}>
-                      Copiar Datos de Tomador
-                    </AppButton>
+              {groupedFields[currentSectionIndex] && (
+                <FormSection
+                  key={groupedFields[currentSectionIndex].title}
+                  title={groupedFields[currentSectionIndex].title}
+                  description="Rellena con el mayor nivel de detalle posible para agilizar la cotizacion."
+                >
+                  {type === "Auto" && groupedFields[currentSectionIndex].title === "Propietario" && (
+                    <div className="col-span-full">
+                      <AppButton type="button" variant="secondary" size="sm" onClick={() => handleCopyData("tomador", "propietario")}>
+                        Copiar datos de Tomador
+                      </AppButton>
+                    </div>
+                  )}
+                  {type === "Auto" && groupedFields[currentSectionIndex].title === "Conductor habitual" && (
+                    <div className="col-span-full flex flex-wrap gap-2">
+                      <AppButton type="button" variant="secondary" size="sm" onClick={() => handleCopyData("tomador", "conductor")}>
+                        Copiar datos de Tomador
+                      </AppButton>
+                      <AppButton type="button" variant="secondary" size="sm" onClick={() => handleCopyData("propietario", "conductor")}>
+                        Copiar datos del Propietario
+                      </AppButton>
+                    </div>
+                  )}
+                  <div className="col-span-full grid grid-cols-1 gap-3 md:grid-cols-12">
+                    {groupedFields[currentSectionIndex].fields.map((field) => <React.Fragment key={field.name}>{renderField(field)}</React.Fragment>)}
                   </div>
-                )}
-                {type === "Auto" && groupedFields[currentSectionIndex].title === "Conductor habitual" && (
-                  <div className="col-span-full mb-1 flex flex-wrap gap-3">
-                    <AppButton type="button" variant="secondary" onClick={() => handleCopyData("tomador", "conductor")}>
-                      Copiar Datos de Tomador
-                    </AppButton>
-                    <AppButton type="button" variant="secondary" onClick={() => handleCopyData("propietario", "conductor")}>
-                      Copiar Datos del Propietario
-                    </AppButton>
-                  </div>
-                )}
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
-                  {groupedFields[currentSectionIndex].fields.map((field) => <React.Fragment key={field.name}>{renderField(field)}</React.Fragment>)}
-                </div>
-              </FormSection>
-            )}
+                </FormSection>
+              )}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <AppButton variant="secondary" onClick={() => {
-                if (currentSectionIndex > 0) setCurrentSectionIndex((prev) => prev - 1);
-                else setStep(2);
-              }}>
-                <ArrowLeft className="h-4 w-4" />
-                {currentSectionIndex > 0 ? "Sección anterior" : "Volver"}
-              </AppButton>
-              <AppButton onClick={() => {
-                if (currentSectionIndex < groupedFields.length - 1) setCurrentSectionIndex((prev) => prev + 1);
-                else setStep(4);
-              }}>
-                {currentSectionIndex < groupedFields.length - 1 ? "Siguiente sección" : "Continuar a adjuntos"}
-                <ArrowRight className="h-4 w-4" />
-              </AppButton>
-            </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <AppButton variant="secondary" size="sm" onClick={() => {
+                  if (currentSectionIndex > 0) setCurrentSectionIndex((prev) => prev - 1);
+                  else setStep(2);
+                }}>
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  {currentSectionIndex > 0 ? "Seccion anterior" : "Volver"}
+                </AppButton>
+                <AppButton size="sm" onClick={() => {
+                  if (currentSectionIndex < groupedFields.length - 1) setCurrentSectionIndex((prev) => prev + 1);
+                  else setStep(4);
+                }}>
+                  {currentSectionIndex < groupedFields.length - 1 ? "Siguiente seccion" : "Continuar a adjuntos"}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </AppButton>
+              </div>
             </div>
           </div>
         </div>
@@ -560,11 +618,11 @@ export default function NewRequest() {
 
       {step === 4 && (
         <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
-          <div className="space-y-6">
+                  <div className="space-y-2.5">
             <SurfaceCard padding="lg">
               <div className="relative z-10 space-y-4">
                 <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[hsl(350_78%_50%)]">Resumen del envio</p>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div>
                     <p className="text-[0.72rem] font-semibold uppercase tracking-[0.08em] text-[hsl(219_18%_52%)]">Ramo</p>
                     <p className="mt-1 text-base font-semibold text-[hsl(222_38%_12%)]">{type}</p>
@@ -590,9 +648,9 @@ export default function NewRequest() {
           </div>
 
           <SectionCard title="Documentacion adicional" description="Adjunta polizas, recibos o documentos de soporte antes de enviar la solicitud." icon={Paperclip}>
-            <div className="space-y-6">
-              <label htmlFor="docs-upload" className="flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-[1.35rem] border border-dashed border-[hsl(220_16%_86%)] bg-white/70 px-6 py-10 text-center transition hover:border-[hsl(350_78%_50%_/_0.38)] hover:bg-[hsl(350_78%_50%_/_0.05)]">
-                <span className="icon-badge mx-auto h-16 w-16 rounded-[1.3rem]"><Paperclip className="h-7 w-7" /></span>
+                    <div className="space-y-2.5">
+              <label htmlFor="docs-upload" className="flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[hsl(220_14%_88%)] bg-white px-4 py-6 text-center transition hover:border-[hsl(350_78%_50%_/_0.38)] hover:bg-[hsl(350_78%_50%_/_0.05)]">
+                <span className="icon-badge mx-auto h-10 w-10 rounded-md"><Paperclip className="h-5 w-5" /></span>
                 <p className="mt-4 text-lg font-semibold tracking-[-0.02em] text-[hsl(222_38%_12%)]">Anadir documentos</p>
                 <p className="mt-2 text-sm leading-6 text-[hsl(219_18%_52%)]">PDF, JPG, PNG o DOCX. Se validaran antes de adjuntarlos a la solicitud.</p>
                 <input id="docs-upload" type="file" multiple className="hidden" onChange={(event) => {
@@ -605,12 +663,12 @@ export default function NewRequest() {
                   {attachments.map((file, index) => (
                     <SurfaceCard key={`${file.name}-${index}`} variant="soft" className="overflow-hidden">
                       <div className="relative z-10 flex items-center gap-3">
-                        <span className="icon-badge h-11 w-11 rounded-[1rem]" data-tone="neutral"><FileText className="h-4.5 w-4.5" /></span>
+                        <span className="icon-badge h-8 w-8 rounded-md" data-tone="neutral"><FileText className="h-3.5 w-3.5" /></span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-semibold text-[hsl(222_38%_12%)]">{file.name}</p>
                           <p className="mt-1 text-sm text-[hsl(219_18%_52%)]">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                         </div>
-                        <button type="button" onClick={() => setAttachments((previous) => previous.filter((_, attachmentIndex) => attachmentIndex !== index))} className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[hsl(220_16%_86%)] bg-white/80 text-[hsl(219_18%_52%)] transition hover:text-[hsl(353_72%_46%)]">
+                        <button type="button" onClick={() => setAttachments((previous) => previous.filter((_, attachmentIndex) => attachmentIndex !== index))} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-[hsl(220_14%_88%)] bg-white text-[hsl(219_14%_46%)] transition hover:text-[hsl(353_72%_44%)]">
                           <XCircle className="h-4.5 w-4.5" />
                         </button>
                       </div>

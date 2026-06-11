@@ -8,16 +8,16 @@ type AppButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const sizeClasses = {
-  sm: "min-h-10 px-4 text-sm",
-  md: "min-h-11 px-4.5 text-sm",
-  lg: "min-h-12 px-5 text-[0.95rem]",
+  sm: "min-h-7 px-2.5 text-[0.78rem]",
+  md: "min-h-8 px-3 text-[0.85rem]",
+  lg: "min-h-9 px-4 text-[0.9rem]",
 };
 
 const variantClasses = {
   primary: "button-primary-albroksa",
   secondary: "button-secondary-albroksa",
-  ghost: "inline-flex items-center justify-center gap-2 rounded-2xl border border-transparent px-4 py-2.5 font-semibold text-[hsl(222_38%_12%)] transition hover:bg-white/60",
-  danger: "inline-flex items-center justify-center gap-2 rounded-2xl border border-[hsl(353_83%_60%_/_0.2)] bg-[hsl(353_83%_60%_/_0.08)] px-4 py-2.5 font-semibold text-[hsl(353_72%_46%)] transition hover:bg-[hsl(353_83%_60%_/_0.12)]",
+  ghost: "inline-flex items-center justify-center gap-1.5 rounded-md border border-transparent px-2.5 py-1.5 text-[0.85rem] font-medium text-[hsl(222_38%_12%)] transition hover:bg-[hsl(220_22%_97%)]",
+  danger: "inline-flex items-center justify-center gap-1.5 rounded-md border border-[hsl(353_78%_52%_/_0.22)] bg-[hsl(353_78%_52%_/_0.08)] px-2.5 py-1.5 text-[0.85rem] font-medium text-[hsl(353_72%_44%)] transition hover:bg-[hsl(353_78%_52%_/_0.14)]",
 };
 
 export default function AppButton({
